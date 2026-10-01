@@ -24,11 +24,11 @@ export default function HomePage() {
         <Intro />
         <Skills />
         <About />
-        <Timeline />
+        {/* <Timeline /> */}
         <Services />
         <Projects />
         <CaseStudies />
-        <GitHub />
+        {/* <GitHub /> */}
         <Experience />
         <Contact />
       </main>

@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { navItems, profile, socials } from "../data/site";
 import { Icon } from "./Icon";
+import Link from "next/link";
 
 export default function Navbar() {
   const [stuck, setStuck] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState("#home");
+
 
   useEffect(() => {
     const onScroll = () => {
@@ -44,7 +46,7 @@ export default function Navbar() {
   return (
     <header className={`nav${stuck ? " is-stuck" : ""}`}>
       <div className="shell nav-inner">
-        <a href="#home" className="brand" onClick={() => setOpen(false)}>
+        <Link href="/" className="brand" onClick={() => setOpen(false)}>
           <span className="brand-mark" aria-hidden="true">
             {profile.initials}
           </span>
@@ -52,25 +54,25 @@ export default function Navbar() {
             {profile.name}
             <small className="ltr">{profile.nameEn.toUpperCase()}</small>
           </span>
-        </a>
+        </Link>
 
         <nav className="nav-links" aria-label="ناوبری اصلی">
           {navItems.map((item) => (
-            <a
+            <Link
               key={item.href}
               href={item.href}
-              className={`nav-link${active === item.href ? " is-active" : ""}`}
+              className={`nav-link ${active === item.href ? " is-active" : ""}`}
               aria-current={active === item.href ? "page" : undefined}
             >
               {item.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
-        <a href="#contact" className="btn btn-primary btn-sm nav-cta">
+        <Link href="#contact" className="btn btn-primary btn-sm nav-cta">
           <Icon name="chat" size={16} />
           بیایید صحبت کنیم
-        </a>
+        </Link>
 
         <button
           type="button"
@@ -90,7 +92,7 @@ export default function Navbar() {
         <div id="mobile-menu" className={`mobile-menu${open ? " is-open" : ""}`}>
           <nav aria-label="ناوبری موبایل">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.href}
                 href={item.href}
                 className="mobile-link"
@@ -98,20 +100,20 @@ export default function Navbar() {
               >
                 {item.label}
                 <Icon name="arrow-left" size={16} />
-              </a>
+              </Link>
             ))}
           </nav>
-          <a
+          <Link
             href={profile.email} target="_blank"
             className="btn btn-primary"
             onClick={() => setOpen(false)}
           >
             <Icon name="mail" size={17} />
             تماس با من
-          </a>
+          </Link>
           <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
             {socials.slice(0, 3).map((s) => (
-              <a
+              <Link
                 key={s.key}
                 href={s.url}
                 className="chip"
@@ -120,7 +122,7 @@ export default function Navbar() {
                 aria-label={s.label}
               >
                 <Icon name={s.key} size={14} />
-              </a>
+              </Link>
             ))}
           </div>
         </div>

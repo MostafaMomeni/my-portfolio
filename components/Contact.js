@@ -2,7 +2,7 @@ import { profile } from "../data/site";
 import { Icon } from "./Icon";
 
 const items = [
-  { icon: "mail", label: "ایمیل", value: profile.email, url: profile.email },
+  { icon: "mail", label: "ایمیل", value: profile.emailName, url: profile.email },
   { icon: "telegram", label: "تلگرام", value: profile.telegramHandle, url: profile.telegram },
   { icon: "github", label: "GitHub", value: profile.githubHandle, url: profile.github },
   {

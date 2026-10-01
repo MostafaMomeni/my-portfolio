@@ -13,7 +13,7 @@ export default function Experience() {
             تجربه و <span className="grad-text">تحصیلات</span>
           </h2>
           <p className="section-desc" data-reveal data-delay="2">
-            مسیر حرفه‌ای و تحصیلی من، همان‌طور که در رزومه‌ام آمده است.
+            مسیر حرفه‌ای و تحصیلی من.
           </p>
         </div>
 
@@ -55,11 +55,10 @@ export default function Experience() {
               <h3>{e.degree}</h3>
               <div className="exp-org">{e.school}</div>
               <div className="exp-loc">
-                {e.field} · <Icon name="pin" size={13} /> {e.location}
+                <Icon name="pin" size={13} /> {e.location}
               </div>
               <p>
-                دانشجوی مهندسی کامپیوتر با گرایش برنامه‌نویسی وب هستم و هم‌زمان در
-                بازار کار فعالیت می‌کنم.
+               {e.text}
               </p>
               <ul className="exp-points">
                 <li className="exp-point">

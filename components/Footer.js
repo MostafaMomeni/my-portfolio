@@ -48,7 +48,7 @@ export default function Footer() {
             © {year} — {profile.name} · {profile.role}
           </span>
           <span>
-            ساخته شده با <span className="footer-heart">♥</span> و کدهای واقعی
+            ساخته شده با <span className="footer-heart">♥</span>
           </span>
         </div>
       </div>

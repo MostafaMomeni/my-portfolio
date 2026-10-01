@@ -14,8 +14,7 @@ export default function Projects() {
             کارهایی که <span className="grad-text">ساخته‌ام</span>
           </h2>
           <p className="section-desc" data-reveal data-delay="2">
-            پروژه‌های واقعی که برای کارفرماها و مجموعه‌های مختلف ساخته‌ام. تصویر
-            هر کارت، اسکرین‌شات واقعی همان پروژه است.
+            پروژه‌های واقعی که برای کارفرماها و مجموعه‌های مختلف ساخته‌ام.
           </p>
         </div>
 

@@ -79,7 +79,12 @@
   /* گرادیان‌ها */
   --grad-brand: linear-gradient(115deg, #4d7cff 0%, #8b5cf6 55%, #22d3ee 100%);
   --grad-text: linear-gradient(100deg, #ffffff 0%, #b9c6ff 45%, #8b5cf6 100%);
-  --grad-line: linear-gradient(90deg, transparent, rgba(77, 124, 255, 0.55), transparent);
+  --grad-line: linear-gradient(
+    90deg,
+    transparent,
+    rgba(77, 124, 255, 0.55),
+    transparent
+  );
 
   /* فاصله‌ها */
   --gutter: 24px;
@@ -96,7 +101,9 @@
   --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 18px 44px -18px rgba(0, 0, 0, 0.7);
   --shadow-lg: 0 40px 90px -30px rgba(0, 0, 0, 0.85);
-  --glow-blue: 0 0 0 1px rgba(77, 124, 255, 0.28), 0 12px 40px -12px rgba(77, 124, 255, 0.42);
+  --glow-blue:
+    0 0 0 1px rgba(77, 124, 255, 0.28),
+    0 12px 40px -12px rgba(77, 124, 255, 0.42);
 
   /* تایپوگرافی */
   --font: "Vazirmatn", "Segoe UI", Tahoma, sans-serif;
@@ -147,9 +154,21 @@ body::before {
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(1000px 620px at 78% -8%, rgba(139, 92, 246, 0.16), transparent 62%),
-    radial-gradient(880px 560px at 12% 4%, rgba(77, 124, 255, 0.15), transparent 60%),
-    radial-gradient(760px 620px at 50% 108%, rgba(34, 211, 238, 0.07), transparent 65%),
+    radial-gradient(
+      1000px 620px at 78% -8%,
+      rgba(139, 92, 246, 0.16),
+      transparent 62%
+    ),
+    radial-gradient(
+      880px 560px at 12% 4%,
+      rgba(77, 124, 255, 0.15),
+      transparent 60%
+    ),
+    radial-gradient(
+      760px 620px at 50% 108%,
+      rgba(34, 211, 238, 0.07),
+      transparent 65%
+    ),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 45%, var(--bg) 100%);
   pointer-events: none;
 }
@@ -163,8 +182,16 @@ body::after {
     linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
   background-size: 68px 68px;
-  mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 20%, transparent 78%);
-  -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 20%, transparent 78%);
+  mask-image: radial-gradient(
+    ellipse 90% 60% at 50% 0%,
+    #000 20%,
+    transparent 78%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 90% 60% at 50% 0%,
+    #000 20%,
+    transparent 78%
+  );
   pointer-events: none;
 }
 
@@ -303,7 +330,9 @@ ol {
   border-radius: var(--r-lg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease),
+  transition:
+    transform var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
     background var(--dur) var(--ease);
 }
 
@@ -319,8 +348,12 @@ ol {
   border: 1px solid transparent;
   cursor: pointer;
   white-space: nowrap;
-  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease),
-    background 0.3s var(--ease), border-color 0.3s var(--ease), color 0.3s var(--ease);
+  transition:
+    transform 0.3s var(--ease),
+    box-shadow 0.3s var(--ease),
+    background 0.3s var(--ease),
+    border-color 0.3s var(--ease),
+    color 0.3s var(--ease);
 }
 
 .btn:hover {
@@ -364,7 +397,10 @@ ol {
   border: 1px solid var(--line);
   border-radius: var(--r-full);
   padding: 5px 12px;
-  transition: color 0.3s var(--ease), border-color 0.3s var(--ease), background 0.3s var(--ease);
+  transition:
+    color 0.3s var(--ease),
+    border-color 0.3s var(--ease),
+    background 0.3s var(--ease);
 }
 
 a.chip:hover {
@@ -378,7 +414,9 @@ a.chip:hover {
 [data-reveal] {
   opacity: 0;
   transform: translateY(26px);
-  transition: opacity 0.75s var(--ease), transform 0.75s var(--ease);
+  transition:
+    opacity 0.75s var(--ease),
+    transform 0.75s var(--ease);
   will-change: opacity, transform;
 }
 
@@ -392,10 +430,18 @@ a.chip:hover {
 }
 
 /* تأخیر پلکانی */
-[data-reveal][data-delay="1"] { transition-delay: 0.08s; }
-[data-reveal][data-delay="2"] { transition-delay: 0.16s; }
-[data-reveal][data-delay="3"] { transition-delay: 0.24s; }
-[data-reveal][data-delay="4"] { transition-delay: 0.32s; }
+[data-reveal][data-delay="1"] {
+  transition-delay: 0.08s;
+}
+[data-reveal][data-delay="2"] {
+  transition-delay: 0.16s;
+}
+[data-reveal][data-delay="3"] {
+  transition-delay: 0.24s;
+}
+[data-reveal][data-delay="4"] {
+  transition-delay: 0.32s;
+}
 
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -421,8 +467,11 @@ a.chip:hover {
   top: 0;
   z-index: 60;
   padding-block: 14px;
-  transition: padding 0.4s var(--ease), background 0.4s var(--ease),
-    border-color 0.4s var(--ease), backdrop-filter 0.4s var(--ease);
+  transition:
+    padding 0.4s var(--ease),
+    background 0.4s var(--ease),
+    border-color 0.4s var(--ease),
+    backdrop-filter 0.4s var(--ease);
   border-bottom: 1px solid transparent;
 }
 
@@ -491,7 +540,9 @@ a.chip:hover {
   font-size: 14.5px;
   font-weight: 600;
   color: var(--text-2);
-  transition: color 0.3s var(--ease), background 0.3s var(--ease);
+  transition:
+    color 0.3s var(--ease),
+    background 0.3s var(--ease);
 }
 
 .nav-link:hover,
@@ -522,29 +573,34 @@ a.chip:hover {
   border: 1px solid var(--line-strong);
   background: var(--surface);
   place-items: center;
+  transition: 0.3s;
+  padding: 5px;
 }
 
 .nav-toggle span {
   display: block;
   width: 17px;
-  height: 1.8px;
+  height: 2px;
   background: var(--text);
   border-radius: 2px;
-  transition: transform 0.35s var(--ease), opacity 0.25s var(--ease);
+  transition: 0.3s;
+  transition:
+    transform 0.35s var(--ease),
+    opacity 0.25s var(--ease);
 }
 
 .nav-toggle span + span {
-  margin-top: 4.5px;
+  margin-top: 0px;
 }
 
 .nav-toggle[aria-expanded="true"] span:nth-child(1) {
-  transform: translateY(6.3px) rotate(45deg);
+  transform: translateY(10px) rotate(45deg);
 }
 .nav-toggle[aria-expanded="true"] span:nth-child(2) {
   opacity: 0;
 }
 .nav-toggle[aria-expanded="true"] span:nth-child(3) {
-  transform: translateY(-6.3px) rotate(-45deg);
+  transform: translateY(-10px) rotate(-45deg);
 }
 
 .mobile-menu {
@@ -579,7 +635,9 @@ a.chip:hover {
   border-radius: var(--r-md);
   font-weight: 600;
   color: var(--text-2);
-  transition: background 0.25s var(--ease), color 0.25s var(--ease);
+  transition:
+    background 0.25s var(--ease),
+    color 0.25s var(--ease);
 }
 
 .mobile-link:hover {
@@ -739,8 +797,14 @@ a.chip:hover {
   position: relative;
   border-radius: var(--r-xl);
   border: 1px solid var(--line-strong);
-  background: linear-gradient(160deg, rgba(20, 24, 44, 0.9), rgba(9, 11, 22, 0.94));
-  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  background: linear-gradient(
+    160deg,
+    rgba(20, 24, 44, 0.9),
+    rgba(9, 11, 22, 0.94)
+  );
+  box-shadow:
+    var(--shadow-lg),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   overflow: hidden;
 }
 
@@ -759,9 +823,15 @@ a.chip:hover {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.term-dot.r { background: #ff5f57; }
-.term-dot.y { background: #febc2e; }
-.term-dot.g { background: #28c840; }
+.term-dot.r {
+  background: #ff5f57;
+}
+.term-dot.y {
+  background: #febc2e;
+}
+.term-dot.g {
+  background: #28c840;
+}
 
 .term-file {
   margin-inline-start: auto;
@@ -782,12 +852,25 @@ a.chip:hover {
   overflow: hidden;
 }
 
-.tok-key { color: #c792ea; }
-.tok-fn { color: #82aaff; }
-.tok-str { color: #c3e88d; }
-.tok-num { color: #f78c6c; }
-.tok-com { color: #8b97b8; font-style: italic; }
-.tok-prop { color: #89ddff; }
+.tok-key {
+  color: #c792ea;
+}
+.tok-fn {
+  color: #82aaff;
+}
+.tok-str {
+  color: #c3e88d;
+}
+.tok-num {
+  color: #f78c6c;
+}
+.tok-com {
+  color: #8b97b8;
+  font-style: italic;
+}
+.tok-prop {
+  color: #89ddff;
+}
 
 .cursor-blink {
   display: inline-block;
@@ -861,7 +944,9 @@ a.chip:hover {
   animation: float 7s ease-in-out infinite;
 }
 
-.hero-float svg { flex-shrink: 0; }
+.hero-float svg {
+  flex-shrink: 0;
+}
 
 .hero-float-1 {
   top: 5%;
@@ -954,7 +1039,9 @@ a.chip:hover {
   border-radius: var(--r-lg);
   border: 1px solid var(--line);
   background: var(--surface);
-  transition: border-color 0.4s var(--ease), transform 0.4s var(--ease);
+  transition:
+    border-color 0.4s var(--ease),
+    transform 0.4s var(--ease);
 }
 
 .pillar:hover {
@@ -968,7 +1055,11 @@ a.chip:hover {
   border-radius: 13px;
   display: grid;
   place-items: center;
-  background: linear-gradient(140deg, rgba(77, 124, 255, 0.2), rgba(139, 92, 246, 0.16));
+  background: linear-gradient(
+    140deg,
+    rgba(77, 124, 255, 0.2),
+    rgba(139, 92, 246, 0.16)
+  );
   border: 1px solid rgba(139, 92, 246, 0.3);
   color: var(--violet-soft);
   flex-shrink: 0;
@@ -1076,7 +1167,11 @@ a.chip:hover {
   text-align: center;
   border-radius: var(--r-xl);
   border: 1px solid var(--line-strong);
-  background: linear-gradient(165deg, rgba(20, 24, 44, 0.72), rgba(9, 11, 22, 0.85));
+  background: linear-gradient(
+    165deg,
+    rgba(20, 24, 44, 0.72),
+    rgba(9, 11, 22, 0.85)
+  );
   box-shadow: var(--shadow-md);
 }
 
@@ -1172,7 +1267,12 @@ a.chip:hover {
   inset-block: 8px;
   inset-inline-start: 7px;
   width: 2px;
-  background: linear-gradient(180deg, var(--blue), var(--violet) 55%, transparent);
+  background: linear-gradient(
+    180deg,
+    var(--blue),
+    var(--violet) 55%,
+    transparent
+  );
   border-radius: 2px;
 }
 
@@ -1200,7 +1300,9 @@ a.chip:hover {
 
 .tl-item:hover .tl-dot {
   border-color: var(--violet);
-  box-shadow: 0 0 0 6px rgba(139, 92, 246, 0.2), 0 0 18px rgba(139, 92, 246, 0.6);
+  box-shadow:
+    0 0 0 6px rgba(139, 92, 246, 0.2),
+    0 0 18px rgba(139, 92, 246, 0.6);
   transform: scale(1.14);
 }
 
@@ -1246,7 +1348,11 @@ a.chip:hover {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), rgba(77, 124, 255, 0.14), transparent 42%);
+  background: radial-gradient(
+    420px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(77, 124, 255, 0.14),
+    transparent 42%
+  );
   opacity: 0;
   transition: opacity 0.45s var(--ease);
   pointer-events: none;
@@ -1267,7 +1373,11 @@ a.chip:hover {
   border-radius: 15px;
   display: grid;
   place-items: center;
-  background: linear-gradient(140deg, rgba(77, 124, 255, 0.2), rgba(139, 92, 246, 0.18));
+  background: linear-gradient(
+    140deg,
+    rgba(77, 124, 255, 0.2),
+    rgba(139, 92, 246, 0.18)
+  );
   border: 1px solid rgba(139, 92, 246, 0.28);
   color: var(--blue-soft);
   margin-bottom: 18px;
@@ -1305,7 +1415,9 @@ a.chip:hover {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.55s var(--ease), border-color 0.55s var(--ease),
+  transition:
+    transform 0.55s var(--ease),
+    border-color 0.55s var(--ease),
     box-shadow 0.55s var(--ease);
 }
 
@@ -1328,7 +1440,9 @@ a.chip:hover {
   height: 100%;
   object-fit: cover;
   object-position: top center;
-  transition: transform 0.75s var(--ease), filter 0.75s var(--ease);
+  transition:
+    transform 0.75s var(--ease),
+    filter 0.75s var(--ease);
 }
 
 .project-card:hover .project-media img {
@@ -1339,7 +1453,11 @@ a.chip:hover {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 52%, rgba(5, 6, 12, 0.72) 100%);
+  background: linear-gradient(
+    180deg,
+    transparent 52%,
+    rgba(5, 6, 12, 0.72) 100%
+  );
   pointer-events: none;
 }
 
@@ -1366,7 +1484,11 @@ a.chip:hover {
 }
 
 .badge-ai {
-  background: linear-gradient(120deg, rgba(139, 92, 246, 0.9), rgba(77, 124, 255, 0.9));
+  background: linear-gradient(
+    120deg,
+    rgba(139, 92, 246, 0.9),
+    rgba(77, 124, 255, 0.9)
+  );
   border-color: transparent;
 }
 
@@ -1374,6 +1496,9 @@ a.chip:hover {
   background: rgba(139, 92, 246, 0.22);
   border-color: rgba(139, 92, 246, 0.5);
   color: var(--violet-soft);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* تصویر جایگزین گرافیکی برای پروژه‌های بدون اسکرین‌شات */
@@ -1381,13 +1506,21 @@ a.chip:hover {
   display: grid;
   place-items: center;
   background:
-    radial-gradient(520px circle at 22% 18%, rgba(139, 92, 246, 0.3), transparent 62%),
-    radial-gradient(420px circle at 82% 86%, rgba(77, 124, 255, 0.24), transparent 62%),
+    radial-gradient(
+      520px circle at 22% 18%,
+      rgba(139, 92, 246, 0.3),
+      transparent 62%
+    ),
+    radial-gradient(
+      420px circle at 82% 86%,
+      rgba(77, 124, 255, 0.24),
+      transparent 62%
+    ),
     linear-gradient(160deg, #12142c, #06070f);
 }
 
 .project-media.is-brand img {
-  object-fit: contain;
+  object-fit: cover;
   width: 46%;
   filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.55));
 }
@@ -1470,7 +1603,9 @@ a.chip:hover {
   font-size: 13.5px;
   font-weight: 700;
   color: var(--blue-soft);
-  transition: color 0.3s var(--ease), gap 0.3s var(--ease);
+  transition:
+    color 0.3s var(--ease),
+    gap 0.3s var(--ease);
 }
 
 .project-link:hover {
@@ -1488,7 +1623,11 @@ a.chip:hover {
 
 /* کارت پروژه محرمانه */
 .project-card.is-private {
-  background: linear-gradient(160deg, rgba(28, 20, 58, 0.5), rgba(9, 11, 22, 0.7));
+  background: linear-gradient(
+    160deg,
+    rgba(28, 20, 58, 0.5),
+    rgba(9, 11, 22, 0.7)
+  );
   border-style: dashed;
   border-color: rgba(139, 92, 246, 0.34);
 }
@@ -1689,7 +1828,11 @@ a.chip:hover {
   border-radius: 15px;
   display: grid;
   place-items: center;
-  background: linear-gradient(140deg, rgba(77, 124, 255, 0.22), rgba(139, 92, 246, 0.18));
+  background: linear-gradient(
+    140deg,
+    rgba(77, 124, 255, 0.22),
+    rgba(139, 92, 246, 0.18)
+  );
   border: 1px solid rgba(139, 92, 246, 0.3);
   color: var(--blue-soft);
   margin-bottom: 17px;
@@ -1761,8 +1904,16 @@ a.chip:hover {
   border-radius: var(--r-xl);
   border: 1px solid var(--line-strong);
   background:
-    radial-gradient(760px circle at 82% 0%, rgba(139, 92, 246, 0.17), transparent 58%),
-    radial-gradient(620px circle at 8% 100%, rgba(77, 124, 255, 0.15), transparent 58%),
+    radial-gradient(
+      760px circle at 82% 0%,
+      rgba(139, 92, 246, 0.17),
+      transparent 58%
+    ),
+    radial-gradient(
+      620px circle at 8% 100%,
+      rgba(77, 124, 255, 0.15),
+      transparent 58%
+    ),
     linear-gradient(165deg, rgba(18, 21, 40, 0.8), rgba(7, 9, 18, 0.9));
   padding: clamp(32px, 6vw, 66px);
   overflow: hidden;
@@ -1852,7 +2003,9 @@ a.chip:hover {
 .contact-item svg.arrow {
   color: var(--text-3);
   flex-shrink: 0;
-  transition: transform 0.3s var(--ease), color 0.3s var(--ease);
+  transition:
+    transform 0.3s var(--ease),
+    color 0.3s var(--ease);
 }
 
 .contact-item:hover svg.arrow {
@@ -2147,7 +2300,7 @@ a.chip:hover {
   .exp-grid {
     grid-template-columns: 1fr;
   }
-  .orbit{
+  .orbit {
     display: none;
   }
 }
@@ -2248,4 +2401,272 @@ a.chip:hover {
     font-size: 11.5px;
     gap: 5px;
   }
+}
+
+/* ---------- 14.5 پیش‌نمایش زنده پروژه ---------- */
+
+.live-preview {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* تصویر پوستر */
+.live-poster {
+  position: absolute;
+  inset: 0;
+}
+
+.live-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  transition:
+    transform 0.75s var(--ease),
+    filter 0.5s var(--ease);
+}
+
+.project-card:hover .live-poster img {
+  transform: scale(1.055);
+}
+
+/* حالت زنده: کمی تیره‌تر تا دکمه‌ها بهتر دیده شوند */
+.live-preview.is-live .live-poster {
+  display: none;
+}
+
+/* قاب iframe */
+.live-frame-wrap {
+  position: absolute;
+  inset: 0;
+  background: #0a0d1a;
+}
+
+.live-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #0a0d1a;
+  opacity: 0;
+  transition: opacity 0.5s var(--ease);
+}
+
+.live-frame.is-loaded {
+  opacity: 1;
+}
+
+.live-frame.is-hidden {
+  display: none;
+}
+
+/* چرخهٔ بارگذاری */
+.live-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--text-2);
+  z-index: 2;
+  background: rgba(10, 13, 26, 0.6);
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.14);
+  border-top-color: var(--blue);
+  animation: spin 0.85s linear infinite;
+}
+
+/* حالت جایگزین وقتی امبد مجاز نیست */
+.live-fallback {
+  position: absolute;
+  inset: 0;
+}
+
+.live-fallback img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  opacity: 0.55;
+}
+
+.live-fallback-msg {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: rgba(5, 6, 12, 0.62);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.live-fallback-msg svg {
+  color: var(--violet-soft);
+}
+
+/* دکمه پخش وسط کادر */
+.live-play {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px;
+  background: linear-gradient(
+    180deg,
+    rgba(5, 6, 12, 0.12) 0%,
+    rgba(5, 6, 12, 0.55) 100%
+  );
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
+  transition: background 0.4s var(--ease);
+  text-align: start;
+}
+
+.live-play:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(5, 6, 12, 0.05) 0%,
+    rgba(5, 6, 12, 0.38) 100%
+  );
+}
+
+.live-play-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--grad-brand);
+  color: #fff;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.85);
+  transition: transform 0.4s var(--ease);
+  flex-shrink: 0;
+}
+
+.live-play:hover .live-play-icon {
+  transform: scale(1.11);
+}
+
+.live-play-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.5;
+}
+
+.live-play-text b {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.live-play-text small {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* نوار ابزار پایین کادر */
+.live-bar {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  background: rgba(5, 6, 12, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  font-size: 12px;
+}
+
+.live-bar-hint,
+.live-bar-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.live-bar-live {
+  color: var(--green);
+}
+
+.live-bar-hint svg {
+  color: var(--violet-soft);
+}
+
+.live-bar-actions {
+  display: inline-flex;
+  gap: 7px;
+}
+
+.live-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: var(--r-full);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-2);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.28s var(--ease);
+  white-space: nowrap;
+}
+
+.live-bar-btn:hover {
+  color: #fff;
+  background: rgba(77, 124, 255, 0.2);
+  border-color: rgba(77, 124, 255, 0.45);
+}
+
+@media (max-width: 640px) {
+  .live-play-icon {
+    width: 46px;
+    height: 46px;
+  }
+  .live-play-text small {
+    display: none;
+  }
+  .live-bar {
+    padding: 7px 9px;
+  }
+}
+
+/* پیش‌نمایش زنده در صفحه جزئیات */
+.pd-figure .live-preview.pd-live {
+  position: relative;
+  inset: auto;
+  aspect-ratio: 16 / 10;
+}
+
+.pd-figure .live-poster img,
+.pd-figure .live-fallback img {
+  object-position: top center;
 }

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { categories } from "../data/site";
 import { Icon } from "./Icon";
+import LivePreview from "./LivePreview";
 
 export default function ProjectCard({ project }) {
   const isPrivate = project.confidential;
@@ -30,20 +31,32 @@ export default function ProjectCard({ project }) {
             <span>پروژه محرمانه — بدون تصویر و دمو عمومی</span>
           </div>
         ) : (
-          hasImage && (
-            <Image
-              src={project.image}
+          <>
+            <LivePreview
+              url={project.url}
+              title={project.title}
+              image={project.image}
               alt={
                 project.imageKind === "brand"
                   ? `نشان رسمی پروژه ${project.title}`
                   : `تصویر واقعی از وب‌سایت ${project.title}`
               }
-              fill
-              sizes="(max-width: 900px) 100vw, (max-width: 1200px) 50vw, 600px"
-              loading="lazy"
-              quality={82}
             />
-          )
+          </>
+          // hasImage && (
+          //   <Image
+          //     src={project.image}
+          //     alt={
+          //       project.imageKind === "brand"
+          //         ? `نشان رسمی پروژه ${project.title}`
+          //         : `تصویر واقعی از وب‌سایت ${project.title}`
+          //     }
+          //     fill
+          //     sizes="(max-width: 900px) 100vw, (max-width: 1200px) 50vw, 600px"
+          //     loading="lazy"
+          //     quality={82}
+          //   />
+          // )
         )}
       </div>
 
@@ -81,7 +94,7 @@ export default function ProjectCard({ project }) {
               <Icon name="arrow-left" size={15} />
             </Link>
             {project.url && (
-              <a
+              <Link
                 href={project.url}
                 className="project-link"
                 target="_blank"
@@ -90,7 +103,7 @@ export default function ProjectCard({ project }) {
               >
                 سایت
                 <Icon name="arrow-up-left" size={15} />
-              </a>
+              </Link>
             )}
           </div>
         </div>
