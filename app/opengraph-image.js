@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { profile } from "../data/site";
 
+export const dynamic = "force-static";
 export const alt = `${profile.name} — ${profile.role}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
