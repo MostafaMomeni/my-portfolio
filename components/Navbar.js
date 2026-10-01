@@ -102,7 +102,7 @@ export default function Navbar() {
             ))}
           </nav>
           <a
-            href={`mailto:${profile.email}`}
+            href={profile.email} target="_blank"
             className="btn btn-primary"
             onClick={() => setOpen(false)}
           >

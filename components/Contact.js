@@ -2,7 +2,7 @@ import { profile } from "../data/site";
 import { Icon } from "./Icon";
 
 const items = [
-  { icon: "mail", label: "ایمیل", value: profile.email, url: `mailto:${profile.email}` },
+  { icon: "mail", label: "ایمیل", value: profile.email, url: profile.email },
   { icon: "telegram", label: "تلگرام", value: profile.telegramHandle, url: profile.telegram },
   { icon: "github", label: "GitHub", value: profile.githubHandle, url: profile.github },
   {
@@ -33,7 +33,7 @@ export default function Contact() {
               </p>
 
               <div className="contact-actions">
-                <a href={`mailto:${profile.email}`} className="btn btn-primary">
+                <a href={profile.email} target="_blank" className="btn btn-primary">
                   <Icon name="mail" size={17} />
                   ارسال ایمیل
                 </a>

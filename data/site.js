@@ -19,7 +19,7 @@ export const profile = {
   tagline: "Frontend × Artificial Intelligence",
   location: "قم، پردیسان، ایران",
   locationEn: "Qom, Iran",
-  email: "mustafamomeni1359@gmail.com",
+  email: "https://mail.google.com/mail/?view=cm&to=mustafamomeni1359@gmail.com",
   phone: "+989100952046",
   phoneDisplay: "۰۹۱۰ ۰۹۵ ۲۰۴۶",
   birthDate: "۱۳۸۴/۱۰/۲۵",
@@ -475,7 +475,7 @@ export const socials = [
   { key: "github", label: "GitHub", handle: profile.githubHandle, url: profile.github },
   { key: "telegram", label: "Telegram", handle: profile.telegramHandle, url: profile.telegram },
   { key: "instagram", label: "Instagram", handle: profile.instagramHandle, url: profile.instagram },
-  { key: "email", label: "Email", handle: profile.email, url: `mailto:${profile.email}` },
+  { key: "email", label: "Email", handle: profile.email, url: profile.email },
 ];
 
 export function getProject(slug) {

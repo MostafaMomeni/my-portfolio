@@ -864,13 +864,13 @@ a.chip:hover {
 .hero-float svg { flex-shrink: 0; }
 
 .hero-float-1 {
-  top: 11%;
-  inset-inline-start: -6%;
+  top: 5%;
+  inset-inline-end: -6%;
   color: var(--blue-soft);
 }
 .hero-float-2 {
-  bottom: 15%;
-  inset-inline-end: -5%;
+  bottom: -4%;
+  inset-inline-start: -5%;
   color: var(--violet-soft);
   animation-delay: -3.5s;
 }
@@ -2147,6 +2147,9 @@ a.chip:hover {
   .exp-grid {
     grid-template-columns: 1fr;
   }
+  .orbit{
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
@@ -2194,10 +2197,10 @@ a.chip:hover {
     min-height: 280px;
   }
   .hero-float-1 {
-    inset-inline-start: -2%;
+    inset-inline-end: 0%;
   }
   .hero-float-2 {
-    inset-inline-end: -2%;
+    inset-inline-start: 0%;
   }
   .project-body {
     padding: 19px 18px 21px;

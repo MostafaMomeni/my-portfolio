@@ -61,7 +61,7 @@ function StructuredData() {
     jobTitle: profile.role,
     description: profile.summary,
     url: SITE_URL,
-    email: `mailto:${profile.email}`,
+    email: profile.email,
     telephone: `tel:${profile.phone}`,
     address: {
       "@type": "PostalAddress",

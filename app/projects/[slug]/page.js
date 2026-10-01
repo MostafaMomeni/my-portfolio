@@ -236,10 +236,10 @@ export default async function ProjectPage({ params }) {
 
             <div className="card pd-aside-card" data-reveal>
               <h3>ارتباط با من</h3>
-              <a href={`mailto:${profile.email}`} className="btn btn-ghost btn-sm">
+              <Link href={profile.email} target="_blank" className="btn btn-ghost btn-sm">
                 <Icon name="mail" size={15} />
                 ارسال ایمیل
-              </a>
+              </Link>
             </div>
           </aside>
         </section>
