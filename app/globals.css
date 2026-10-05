@@ -2670,3 +2670,533 @@ a.chip:hover {
 .pd-figure .live-fallback img {
   object-position: top center;
 }
+
+/* =========================================================================
+   ۱۳. هیروی سه‌بعدی — لپ‌تاپ و VS Code
+   ارتفاع بلند این بخش فقط وقتی فعال است که مرورگر بتواند صحنه را رندر کند
+   (کلاس data-motion که پیش از اولین رنگ‌کشی توسط اسکریپت کوچکی در
+   layout.js روی <html> گذاشته می‌شود).
+   ========================================================================= */
+
+.intro3d {
+  position: relative;
+  background: var(--bg);
+}
+
+.intro3d-sticky {
+  position: relative;
+}
+
+html[data-motion="on"] .intro3d {
+  height: 520vh;
+  /* نوار بالای صفحه در جریان عادی قرار دارد و هیرو را کمی پایین می‌برد.
+     با این جابه‌جایی، نوار روی هیرو می‌افتد و بوم دقیقاً یک‌نمایشگر را می‌پوشاند.
+     --nav-h در کامپوننت اندازه‌گیری و روی همین بخش ثبت می‌شود. */
+  margin-top: calc(-1 * var(--nav-h, 72px));
+}
+
+html[data-motion="on"] .intro3d-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+}
+
+/* بوم سه‌بعدی */
+.intro3d-canvas-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.7s var(--ease);
+  pointer-events: none;
+}
+
+html[data-motion="off"] .intro3d-canvas-wrap {
+  display: none;
+}
+
+.intro3d[data-mode="3d"] .intro3d-canvas-wrap {
+  opacity: 1;
+}
+
+.intro3d-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* متن معرفی که با شروع روایت محو می‌شود */
+/* توجه: --p فقط روی .intro3d تعریف می‌شود تا از همان‌جا به بقیه ارث برسد. */
+
+.intro3d[data-mode="3d"] .intro3d-copy {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  inset-inline-start: max(
+    var(--gutter),
+    calc((100% - var(--maxw)) / 2 + var(--gutter))
+  );
+  width: min(540px, 42vw);
+  transform: translateY(calc(-50% - var(--p) * 46px));
+  opacity: clamp(0, calc(1 - var(--p) * 5.6), 1);
+  pointer-events: none;
+}
+
+.intro3d[data-mode="3d"][data-phase="0"] .intro3d-copy {
+  pointer-events: auto;
+}
+
+.intro3d h1 {
+  font-size: clamp(38px, 7.2vw, 76px);
+  line-height: 1.14;
+  margin-bottom: 10px;
+}
+
+.intro3d-badge {
+  margin-bottom: 22px;
+}
+
+/* نشانگر مرحله‌ها، سمت چپ قاب */
+.intro3d-rail {
+  position: absolute;
+  z-index: 3;
+  left: max(var(--gutter), calc((100% - var(--maxw)) / 2));
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  opacity: calc(
+    clamp(0, (var(--p) - 0.26) * 9, 1) * clamp(0, (0.96 - var(--p)) * 20, 1)
+  );
+}
+
+.intro3d-rail-line {
+  position: absolute;
+  left: 4px;
+  top: 5px;
+  bottom: 5px;
+  width: 1px;
+  background: var(--line);
+}
+
+.intro3d-rail-item {
+  position: relative;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 11px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  opacity: 0.32;
+  transition:
+    opacity 0.45s var(--ease),
+    color 0.45s var(--ease);
+}
+
+.intro3d-rail-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  background: var(--bg-2);
+  flex-shrink: 0;
+  transition: all 0.45s var(--ease);
+}
+
+.intro3d[data-phase="0"] .intro3d-rail-item[data-index="0"],
+.intro3d[data-phase="1"] .intro3d-rail-item[data-index="1"],
+.intro3d[data-phase="2"] .intro3d-rail-item[data-index="2"],
+.intro3d[data-phase="3"] .intro3d-rail-item[data-index="3"] {
+  opacity: 1;
+  color: var(--text);
+}
+
+.intro3d[data-phase="0"] .intro3d-rail-item[data-index="0"] .intro3d-rail-dot,
+.intro3d[data-phase="1"] .intro3d-rail-item[data-index="1"] .intro3d-rail-dot,
+.intro3d[data-phase="2"] .intro3d-rail-item[data-index="2"] .intro3d-rail-dot,
+.intro3d[data-phase="3"] .intro3d-rail-item[data-index="3"] .intro3d-rail-dot {
+  border-color: transparent;
+  background: var(--grad-brand);
+  box-shadow: 0 0 0 4px rgba(77, 124, 255, 0.16);
+}
+
+/* راهنمای اسکرول */
+.intro3d-hint {
+  position: absolute;
+  z-index: 3;
+  bottom: 26px;
+  inset-inline: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  font-size: 12.5px;
+  color: var(--text-3);
+  opacity: clamp(0, calc((0.08 - var(--p)) * 16), 1);
+}
+
+.intro3d-hint-wheel {
+  position: relative;
+  width: 22px;
+  height: 34px;
+  border: 1.6px solid var(--line-strong);
+  border-radius: 12px;
+}
+
+.intro3d-hint-wheel::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 3px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--blue-soft);
+  transform: translateX(-50%);
+  animation: wheel 1.9s var(--ease) infinite;
+}
+
+@keyframes wheel {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -4px);
+  }
+  35% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  75% {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- چیدمان استاتیک (بدون WebGL یا با ترجیح کاهش حرکت) ---------- */
+
+.intro3d-static {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: clamp(28px, 5vw, 60px);
+  align-items: center;
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding: clamp(80px, 11vh, 130px) var(--gutter) clamp(64px, 9vh, 100px);
+}
+
+.intro3d-static .intro3d-copy {
+  transform: none;
+  opacity: 1;
+}
+
+/* ---------- پنجره‌ی VS Code در DOM ---------- */
+
+.vc {
+  direction: ltr;
+  container-type: inline-size;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line-strong);
+  background: #1f1f1f;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  font-family: var(--font-mono);
+}
+
+.vc-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding-inline: 16px;
+  background: #181818;
+  border-bottom: 1px solid #2b2b2b;
+}
+
+.vc-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.vc-dot-r {
+  background: #ff5f57;
+}
+
+.vc-dot-y {
+  background: #febc2e;
+}
+
+.vc-dot-g {
+  background: #28c840;
+}
+
+.vc-title {
+  margin-inline: auto;
+  font-size: 12.5px;
+  color: #b4b4b4;
+}
+
+.vc-body {
+  display: grid;
+  grid-template-columns: 48px 208px minmax(0, 1fr);
+  min-height: 330px;
+}
+
+.vc-activity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding-block: 14px;
+  background: #181818;
+  border-right: 1px solid #2b2b2b;
+  color: #868686;
+}
+
+.vc-activity > svg:first-child {
+  color: #e8e8e8;
+}
+
+.vc-activity-spacer {
+  flex: 1;
+}
+
+.vc-side {
+  background: #181818;
+  border-right: 1px solid #2b2b2b;
+  padding: 12px 0;
+  overflow: hidden;
+}
+
+.vc-side-title {
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #bbbbbb;
+  padding: 4px 14px 10px;
+}
+
+.vc-side ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vc-side-root {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #eaeaea;
+  padding: 6px 14px;
+  text-transform: uppercase;
+}
+
+.vc-tree {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: #c8c8c8;
+  padding-block: 4px;
+  padding-inline-end: 12px;
+}
+
+.vc-tree.is-active {
+  background: #2a2d2e;
+  color: #ffffff;
+}
+
+.vc-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #1f1f1f;
+}
+
+.vc-tabs {
+  display: flex;
+  height: 38px;
+  background: #181818;
+  border-bottom: 1px solid #2b2b2b;
+}
+
+.vc-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 14px;
+  font-size: 12.5px;
+  color: #8f8f8f;
+  border-right: 1px solid #2b2b2b;
+}
+
+.vc-tab.is-active {
+  background: #1f1f1f;
+  color: #ffffff;
+}
+
+.vc-code {
+  flex: 1;
+  margin: 0;
+  padding: 14px 0 18px;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.85;
+  overflow-x: auto;
+}
+
+.vc-code li {
+  display: flex;
+  gap: 16px;
+  padding-inline: 16px 22px;
+  white-space: pre;
+}
+
+.vc-code li:hover {
+  background: #252526;
+}
+
+.vc-ln {
+  flex-shrink: 0;
+  width: 2ch;
+  text-align: right;
+  color: #5a5f6b;
+  user-select: none;
+}
+
+.vc-code code {
+  font-family: inherit;
+}
+
+.vc-com {
+  color: #6a9955;
+}
+
+.vc-kw {
+  color: #569cd6;
+}
+
+.vc-fn {
+  color: #dcdcaa;
+}
+
+.vc-num {
+  color: #b5cea8;
+}
+
+.vc-str {
+  color: #ce9178;
+}
+
+.vc-prop {
+  color: #9cdcfe;
+}
+
+.vc-p {
+  color: #d4d4d4;
+}
+
+.vc-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 30px;
+  padding-inline: 14px;
+  background: #007acc;
+  color: #ffffff;
+  font-size: 11.5px;
+}
+
+@container (max-width: 620px) {
+  .vc-body {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .vc-side {
+    display: none;
+  }
+
+  .vc-code {
+    font-size: 11.5px;
+  }
+}
+
+/* ---------- واکنش‌گرایی هیروی سه‌بعدی ---------- */
+
+@media (max-width: 1000px) {
+  .intro3d-rail {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .intro3d[data-mode="3d"] .intro3d-copy {
+    top: auto;
+    bottom: 52px;
+    inset-inline: 18px;
+    width: auto;
+    transform: none;
+    text-align: center;
+  }
+
+  .intro3d h1 {
+    font-size: clamp(30px, 9vw, 46px);
+  }
+
+  .intro3d-copy .hero-name-en {
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .intro3d-copy .hero-role {
+    justify-content: center;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .intro3d-copy .hero-text {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .intro3d-copy .hero-meta {
+    display: none;
+  }
+
+  .intro3d-copy .hero-actions {
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 0;
+  }
+
+  .intro3d-copy .hero-actions .btn {
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+
+  .intro3d-static {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    gap: 30px;
+    padding-block: 92px 56px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro3d-hint-wheel::after {
+    animation: none;
+  }
+}

@@ -145,6 +145,18 @@ export default function RootLayout({ children }) {
   return (
     <html lang="fa" dir="rtl">
       <body>
+        {/* پیش از اولین رنگ‌کشی تصمیم می‌گیریم که هیرو سه‌بعدی اجرا شود یا نه،
+            تا کاربر با پرش چیدمان روبه‌رو نشود. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){var on=false;try{" +
+              "var c=document.createElement('canvas');" +
+              "var gl=c.getContext('webgl2')||c.getContext('webgl');" +
+              "if(gl&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){on=true;}" +
+              "}catch(e){}document.documentElement.dataset.motion=on?'on':'off';})();",
+          }}
+        />
         <a href="#home" className="skip-link">
           رفتن به محتوای اصلی
         </a>

@@ -1,6 +1,6 @@
 import Navbar from "../components/Navbar";
 import Reveal from "../components/Reveal";
-import Hero from "../components/Hero";
+import LaptopExperience from "../components/LaptopExperience";
 import Stats from "../components/Stats";
 import Intro from "../components/Intro";
 import Skills from "../components/Skills";
@@ -19,7 +19,7 @@ export default function HomePage() {
     <>
       <Navbar />
       <main>
-        <Hero />
+        <LaptopExperience />
         <Stats />
         <Intro />
         <Skills />
