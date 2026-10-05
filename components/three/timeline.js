@@ -103,6 +103,9 @@ export const CARD = {
   headH: 86, // tabH + urlBarH — سرصفحهٔ مرورگر
 };
 
+/** ضریب رندر iframe زنده — بزرگ‌تر از کادر، تا در عرض دسکتاپ باز شود نه تبلت. */
+export const LIVE_RENDER_SCALE = 1.4;
+
 /**
  * چیدمان داخلی برنامه‌ی پروژه‌ها.
  *
@@ -158,17 +161,36 @@ export function projectsGeometry() {
 /**
  * کادری از صفحه که سایت زندهٔ پروژه در آن نمایش داده می‌شود.
  *
- * سایت کل صفحهٔ لپ‌تاپ را پر می‌کند و فقط داخل همان چهار گوشهٔ سه‌بعدی
- * می‌نشیند؛ بیرون از لپ‌تاپ، صفحهٔ کاربر دست‌نخورده می‌ماند.
- * مختصات در فضای ۱۶۰۰×۱۰۰۰ است.
+ * سایت داخل پنجرهٔ خودِ برنامهٔ پروژه‌ها، روی ناحیهٔ محتوای کارت مرورگر
+ * می‌نشیند — نه روی کل صفحه — تا هیچ‌وقت از قاب لپ‌تاپ بیرون نزند.
+ * کارت با اسلایدر می‌لغزد، پس `pos` را هم می‌گیرد تا هم‌ترازی حفظ شود؛
+ * `w` و `h` ثابت‌اند.
  */
-export function liveViewportRect() {
-  return { x: 0, y: 0, w: SW, h: SH };
+export function liveViewportRect(pos) {
+  const geo = projectsGeometry();
+  const { pad, urlPad, headH } = CARD;
+  const cardX = geo.stageX + (Math.round(pos) - pos) * (geo.prevW + geo.gap);
+  return {
+    x: cardX + pad + urlPad,
+    y: geo.stageY + pad + headH,
+    w: geo.prevW - pad * 2 - urlPad * 2,
+    h: geo.stageH - pad * 2 - headH,
+  };
 }
 
-/** اندازهٔ iframe زنده — برابر بوم صفحه، تا با بقیهٔ رابط هم‌مقیاس باشد. */
+/**
+ * اندازهٔ واقعی iframe زنده در فضای صفحه.
+ *
+ * کادر کوچک است و اگر سایت دقیقاً به همان اندازه رندر شود، مرورگر آن را
+ * تبلت می‌بیند و چیدمان دسکتاپ را نمی‌سازد. پس iframe بزرگ‌تر ساخته می‌شود
+ * و ماتریس سه‌بعدی آن را روی کادر کوچک‌تر می‌نشاند.
+ */
 export function liveFrameSize() {
-  return { w: SW, h: SH };
+  const r = liveViewportRect(0);
+  return {
+    w: Math.round(r.w * LIVE_RENDER_SCALE),
+    h: Math.round(r.h * LIVE_RENDER_SCALE),
+  };
 }
 
 /* ---------- ابزارها ---------- */

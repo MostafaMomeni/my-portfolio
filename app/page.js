@@ -22,8 +22,8 @@ export default function HomePage() {
         <LaptopExperience />
         <Stats />
         <Intro />
-        <Skills />
         <About />
+        <Skills />
         {/* <Timeline /> */}
         <Services />
         <Projects />

@@ -14,14 +14,6 @@ const { w: LIVE_W, h: LIVE_H } = liveFrameSize();
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
-/** مرحله‌های روایت — فقط برای نمایش نشانگر کنار صفحه. */
-const PHASES = [
-  { at: 0.0, label: "لپ‌تاپ" },
-  { at: 0.06, label: "ویندوز" },
-  { at: 0.16, label: "نوشتن کد" },
-  { at: 0.4, label: "دربارهٔ من" },
-  { at: 0.65, label: "پروژه‌ها" },
-];
 
 function HeroCopy() {
   const facts = [
@@ -92,20 +84,6 @@ function HeroCopy() {
   );
 }
 
-/** نشانگر مرحله‌ها در گوشهٔ صفحه. */
-function PhaseRail() {
-  return (
-    <ol className="intro3d-rail" aria-hidden="true">
-      {PHASES.map((phase, i) => (
-        <li key={phase.label} className="intro3d-rail-item" data-index={i}>
-          <span className="intro3d-rail-dot" />
-          <span className="intro3d-rail-label">{phase.label}</span>
-        </li>
-      ))}
-      <span className="intro3d-rail-line" />
-    </ol>
-  );
-}
 
 export default function LaptopExperience() {
   const sectionRef = useRef(null);
@@ -144,6 +122,47 @@ export default function LaptopExperience() {
   }, []);
 
   const progressRef = useRef(0);
+
+  // TEMP-LAB-REMOVE
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has("labclick")) return;
+    const ids = [];
+    ids.push(
+      setTimeout(() => {
+        const s = document.querySelector(".intro3d");
+        const total = s.offsetHeight - window.innerHeight;
+        window.scrollTo({ top: total * 0.85, behavior: "instant" });
+      }, 800),
+    );
+    ids.push(
+      setTimeout(() => {
+        const canvas = document.querySelector(".intro3d-canvas");
+        const b = canvas.getBoundingClientRect();
+        const map = (sx, sy) => [
+          Math.round(b.left + (sx / 1600) * b.width),
+          Math.round(b.top + (sy / 1000) * b.height),
+        ];
+        const [cx, cy] = map((1312 + 1508) / 2, (774 + 824) / 2);
+        const el = document.elementFromPoint(cx, cy);
+        el?.dispatchEvent(
+          new PointerEvent("pointerdown", { clientX: cx, clientY: cy, bubbles: true }),
+        );
+        window.__click = { cx, cy, hit: el?.className || el?.tagName };
+      }, 2600),
+    );
+    ids.push(
+      setTimeout(() => {
+        const f = document.querySelector(".intro3d-live-frame");
+        const r = f?.getBoundingClientRect();
+        document.title = "DIAG " + JSON.stringify({
+          click: window.__click,
+          liveOpened: !!document.querySelector(".intro3d-live"),
+          frame: r ? [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)] : null,
+        });
+      }, 6500),
+    );
+    return () => ids.forEach(clearTimeout);
+  }, []);
 
   /* ---------- سقف زمان بارگذاری سایت زنده ---------- */
 
@@ -212,51 +231,58 @@ export default function LaptopExperience() {
 
   /* ---------- قفل اسکرول در حالت نمای زنده ---------- */
 
-  useEffect(() => {
+useEffect(() => {
     if (!live) return;
 
-    const root = document.documentElement;
-    const { body } = document;
     const anchor = window.scrollY;
-    // با حذف اسکرول‌بار، عرض صفحه یک پیکسل جابه‌جا می‌شود؛ همان عرض را
-    // به‌صورت فاصله برمی‌گردانیم تا محتوا نپرد.
-    const gutter = Math.max(0, window.innerWidth - root.clientWidth);
-    const prevPad = body.style.paddingInlineEnd;
+    /*
+     * قفل اسکرول بدون دست زدن به `overflow`.
+     *
+     * `overflow: hidden` روی <html> باعث می‌شود `position: sticky` هیرو از
+     * کار بیفتد؛ آن‌وقت بوم جابه‌جا می‌شود و ماتریس iframe چند هزار پیکسل
+     * بیرون قاب می‌افتد. پس به‌جای آن، خودِ رویدادهای اسکرول را می‌بندیم.
+     * چون iframe متقاطع است، چرخ روی خودِ سایت به این گوشه نمی‌رسد.
+     */
+    const prevent = (e) => e.preventDefault();
+    window.addEventListener("wheel", prevent, { passive: false });
+    window.addEventListener("touchmove", prevent, { passive: false });
 
-    body.style.overflow = "hidden";
-    root.style.overflow = "hidden";
-    if (gutter) body.style.paddingInlineEnd = `${gutter}px`;
-    root.dataset.liveLocked = "true";
+    const SCROLL_KEYS = new Set([
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "PageUp",
+      "PageDown",
+      "Home",
+      "End",
+      " ",
+      "Spacebar",
+    ]);
 
-    // بعضی مرورگرها با قفل کردن، ناگهان به بالای صفحه می‌پرند.
-    if (Math.abs(window.scrollY - anchor) > 1) {
-      window.scrollTo({ top: anchor, behavior: "instant" });
-    }
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeLive();
+        return;
+      }
+      if (SCROLL_KEYS.has(e.key)) e.preventDefault();
+    };
+    window.addEventListener("keydown", onKeyDown);
 
+    // هر اسکرولی که از راه فوکوس یا برنامه‌نویسی رخ دهد، برمی‌گردد.
     const onScroll = () => {
-      // «overflow: hidden» چرخ و صفحه‌کلید را می‌بندد، ولی اسکرول برنامه‌ای و
-      // اسکرول خودکارِ عنصرِ فوکوس‌شده را نه. هر دو، لپ‌تاپ را از زیر iframe
-      // بیرون می‌کشند؛ پس همین‌جا برمی‌گردانیمش.
       if (Math.abs(window.scrollY - anchor) > 1) {
         window.scrollTo({ top: anchor, behavior: "instant" });
       }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
 
-    const onKeyDown = (e) => {
-      if (e.key !== "Escape") return;
-      e.preventDefault();
-      closeLive();
-    };
-    window.addEventListener("keydown", onKeyDown);
-
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("wheel", prevent);
+      window.removeEventListener("touchmove", prevent);
       window.removeEventListener("keydown", onKeyDown);
-      delete root.dataset.liveLocked;
-      body.style.overflow = "";
-      root.style.overflow = "";
-      body.style.paddingInlineEnd = prevPad;
+      window.removeEventListener("scroll", onScroll);
       if (Math.abs(window.scrollY - anchor) > 1) {
         window.scrollTo({ top: anchor, behavior: "instant" });
       }
@@ -390,7 +416,6 @@ export default function LaptopExperience() {
         {mode === "3d" ? (
           <>
             <HeroCopy />
-            <PhaseRail />
             <div className="intro3d-hint" aria-hidden="true">
               <span className="intro3d-hint-wheel" />
               <span>برای دیدن بقیه، اسکرول کنید</span>
