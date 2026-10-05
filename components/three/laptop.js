@@ -13,8 +13,12 @@
  */
 
 import * as THREE from "three";
-import { createScreenRenderer, SCREEN_W, SCREEN_H } from "./vscodeScreen";
-import { totalChars } from "../../data/code";
+import { createDesktopRenderer } from "./desktop";
+import { makeKeyboardTexture } from "./keyboard";
+import { makeCursorTexture, makeClickTexture } from "./cursor";
+import { quadToMatrix3d } from "./homography";
+import { projects } from "../../data/site";
+import { SW, SH, T, computeState, clamp, smooth, seg } from "./timeline";
 
 /* ---------- ابعاد لپ‌تاپ (واحد: جهانی) ---------- */
 
@@ -34,19 +38,11 @@ LAPTOP.SCREEN_H = LAPTOP.LID_H - 2 * LAPTOP.BEZEL;
 
 /* ---------- نقاط کلیدی روایت ---------- */
 
-const ACT = {
-  lid: [0.13, 0.4],
-  power: [0.36, 0.47],
-  splash: [0.42, 0.58],
-  type: [0.56, 0.9],
-  blend: [0.34, 0.54],
-  dolly: [0.9, 1.0],
-  fade: [0.93, 1.0],
+/** بازه‌هایی که فقط به دوربین مربوط‌اند؛ بقیه در timeline.js است. */
+const CAM = {
+  blend: [0.045, 0.085],
+  dolly: [0.955, 1.0],
 };
-
-const clamp = (v, a = 0, b = 1) => (v < a ? a : v > b ? b : v);
-const smooth = (t) => t * t * (3 - 2 * t);
-const range = (p, [a, b]) => clamp((p - a) / (b - a));
 
 /* ---------- شکل‌های کمکی ---------- */
 
@@ -84,65 +80,6 @@ function roundedSlab(w, d, t, r, bevel = 0.01) {
   return geo;
 }
 
-/** بافت کیبورد و ترک‌پد روی سطح پایه. */
-function makeKeyboardTexture() {
-  const W = 1200;
-  const H = 765;
-  const c = document.createElement("canvas");
-  c.width = W;
-  c.height = H;
-  const g = c.getContext("2d");
-
-  g.fillStyle = "#23252b";
-  g.fillRect(0, 0, W, H);
-
-  const pad = 26;
-  const keyH = 54;
-  const gap = 8;
-  const rows = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.6], // ۱۴ کلید + بک‌اسپیس
-    [1.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.7], // کپس‌لاک + ۱۲ کلید + اینتر
-    [1.9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.1], // شیفت + ۱۱ کلید + شیفت
-    [2.3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.7], // کنترل + کلیدها + اسپیس + کلیدها
-  ];
-
-  let y = pad;
-  for (const row of rows) {
-    const units = row.reduce((a, b) => a + b, 0);
-    const unit = (W - pad * 2 - gap * (row.length - 1)) / units;
-    let x = pad;
-    for (const u of row) {
-      const kw = u * unit;
-      g.fillStyle = "#141519";
-      g.beginPath();
-      g.roundRect(x, y, kw, keyH, 7);
-      g.fill();
-      g.strokeStyle = "rgba(255,255,255,0.05)";
-      g.lineWidth = 1.5;
-      g.stroke();
-      x += kw + gap;
-    }
-    y += keyH + gap;
-  }
-
-  // ترک‌پد
-  const tpW = W * 0.34;
-  const tpH = H * 0.26;
-  const tpX = (W - tpW) / 2;
-  const tpY = H - tpH - 24;
-  g.fillStyle = "#191b20";
-  g.beginPath();
-  g.roundRect(tpX, tpY, tpW, tpH, 12);
-  g.fill();
-  g.strokeStyle = "rgba(255,255,255,0.07)";
-  g.lineWidth = 1.5;
-  g.stroke();
-
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  return tex;
-}
 
 /** هاله‌ی نور پشت لپ‌تاپ. */
 function makeHaloTexture() {
@@ -211,9 +148,8 @@ function makeEnvTexture() {
 
 const SHOTS = [
   { p: 0.0, pos: [2.5, 4.3, 9.0], look: [2.0, 0.1, 0.0] },
-  { p: 0.13, pos: [2.05, 3.7, 8.2], look: [1.62, 0.16, -0.05] },
-  { p: 0.24, pos: [1.35, 2.85, 7.0], look: [0.92, 0.48, -0.45] },
-  { p: 0.34, pos: [0.72, 1.9, 5.35], look: [0.2, 0.82, -0.85] },
+  { p: 0.025, pos: [2.0, 3.5, 7.6], look: [1.5, 0.35, -0.25] },
+  { p: 0.05, pos: [1.25, 2.5, 6.1], look: [0.6, 0.9, -0.9] },
 ];
 
 function sampleShots(p, wide) {
@@ -328,6 +264,11 @@ export function createLaptopScene(canvas) {
   fill.position.set(-2.6, 0.5, 2.4);
   scene.add(fill);
 
+  // نور بالای صفحه‌کلید تا کلیدها و ترک‌پد واضح دیده شوند
+  const deckLight = new THREE.PointLight(0xdce8ff, 5.5, 5.5, 2);
+  deckLight.position.set(0.6, 1.5, 1.1);
+  scene.add(deckLight);
+
   // نوری که از صفحه‌ی روشن لپ‌تاپ روی بدنه و کیبورد می‌افتد
   const screenLight = new THREE.PointLight(0x7aa2ff, 0, 5, 2);
   scene.add(screenLight);
@@ -338,9 +279,9 @@ export function createLaptopScene(canvas) {
 
   const alu = track(
     new THREE.MeshStandardMaterial({
-      color: 0x767d8d,
-      metalness: 0.92,
-      roughness: 0.32,
+      color: 0x9aa2b2,
+      metalness: 0.78,
+      roughness: 0.34,
     }),
   );
   const dark = track(
@@ -370,8 +311,8 @@ export function createLaptopScene(canvas) {
     track(
       new THREE.MeshStandardMaterial({
         map: kbTex,
-        roughness: 0.62,
-        metalness: 0.18,
+        roughness: 0.48,
+        metalness: 0.1,
       }),
     ),
   );
@@ -387,6 +328,26 @@ export function createLaptopScene(canvas) {
   hinge.rotation.z = Math.PI / 2;
   hinge.position.set(0, BASE_T / 2 + 0.02, LAPTOP.HINGE_Z);
   laptop.add(hinge);
+
+  // درگاه‌های کناری — دو مستطیل تیره روی لبه‌های پایه
+  const portGeo = track(new THREE.PlaneGeometry(0.16, 0.045));
+  const portMat = track(
+    new THREE.MeshStandardMaterial({ color: 0x05070c, roughness: 0.8 }),
+  );
+  for (const [side, z, depth] of [
+    [-1, 0.42, 0],
+    [-1, 0.18, 0],
+    [1, 0.3, 0],
+  ]) {
+    const port = new THREE.Mesh(portGeo, portMat);
+    port.rotation.y = (side * Math.PI) / 2;
+    port.position.set(
+      side * (BASE_W / 2 + 0.001),
+      BASE_T / 2,
+      z,
+    );
+    laptop.add(port);
+  }
 
   // درِ لپ‌تاپ
   const lidPivot = new THREE.Group();
@@ -408,11 +369,9 @@ export function createLaptopScene(canvas) {
   bezel.position.set(0, -0.008, LID_H / 2);
   lidPivot.add(bezel);
 
-  // صفحه — بافت از canvas ویرایشگر
-  const screenRenderer = createScreenRenderer();
-  const screenTex = track(
-    new THREE.CanvasTexture(screenRenderer.canvas),
-  );
+  // صفحه — بافت از بوم دسکتاپ ویندوز
+  const desktop = createDesktopRenderer();
+  const screenTex = track(new THREE.CanvasTexture(desktop.canvas));
   screenTex.colorSpace = THREE.SRGBColorSpace;
   screenTex.minFilter = THREE.LinearFilter;
   screenTex.magFilter = THREE.LinearFilter;
@@ -444,6 +403,45 @@ export function createLaptopScene(canvas) {
   cam.position.set(0, -0.016, LID_H - 0.045);
   lidPivot.add(cam);
 
+  /* ---------- نشانگر موس روی صفحه ---------- */
+
+  const CUR_H = 0.2; // ارتفاع نشانگر در جهان
+  const cursorArt = track(makeCursorTexture());
+  const cursor = new THREE.Mesh(
+    track(new THREE.PlaneGeometry(CUR_H * cursorArt.aspect, CUR_H)),
+    track(
+      new THREE.MeshBasicMaterial({
+        map: cursorArt.texture,
+        transparent: true,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+    ),
+  );
+  cursor.rotation.x = Math.PI / 2;
+  cursor.position.set(0, -0.031, 0);
+  cursor.renderOrder = 2;
+  lidPivot.add(cursor);
+
+  const RIPPLE = 0.42;
+  const ripple = new THREE.Mesh(
+    track(new THREE.PlaneGeometry(RIPPLE, RIPPLE)),
+    track(
+      new THREE.MeshBasicMaterial({
+        map: track(makeClickTexture()),
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        toneMapped: false,
+      }),
+    ),
+  );
+  ripple.rotation.x = Math.PI / 2;
+  ripple.position.set(0, -0.033, 0);
+  ripple.renderOrder = 1;
+  ripple.visible = false;
+  lidPivot.add(ripple);
+
   /* ---------- حالت ---------- */
 
   let targetProgress = 0;
@@ -457,6 +455,73 @@ export function createLaptopScene(canvas) {
   const dir = new THREE.Vector3(0, 0.22, 1).normalize();
   let frame = 0;
   let running = true;
+  let lastState = null;
+
+  // قلاب‌های اختیاری برای پیش‌نمایش زندهٔ پروژه‌ها
+  let onScreenTap = null;
+  let onLiveTransform = null;
+
+  /* ---------- کلیک روی صفحه ---------- */
+
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+
+  /** مختصات کلیک را به فضای ۱۶۰۰×۱۰۰۰ صفحه تبدیل می‌کند. */
+  function screenPointFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    ndc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(ndc, camera);
+    const hits = raycaster.intersectObject(screen, false);
+    if (!hits.length || !hits[0].uv) return null;
+    return {
+      x: hits[0].uv.x * SW,
+      y: (1 - hits[0].uv.y) * SH,
+    };
+  }
+
+  function handlePointerDown(e) {
+    if (!onScreenTap || !lastState) return;
+    if (lastState.projects.open < 0.6) return;
+    const pt = screenPointFromEvent(e);
+    if (pt) onScreenTap(pt, lastState);
+  }
+  canvas.addEventListener("pointerdown", handlePointerDown);
+
+  /* ---------- ماتریس نمایش زنده ---------- */
+
+  const _q = new THREE.Vector3();
+
+  /**
+   * چهار گوشهٔ صفحه را در مختصات مرورگر برمی‌گرداند.
+   * ترتیب: بالا‌چپ، بالا‌راست، پایین‌راست، پایین‌چپ
+   */
+  function screenQuad() {
+    const hw = LAPTOP.SCREEN_W / 2;
+    const hh = LAPTOP.SCREEN_H / 2;
+    const cz = LID_H / 2;
+    const rect = canvas.getBoundingClientRect();
+    // ترتیب حتماً باید «بالا‌چپ، بالا‌راست، پایین‌راست، پایین‌چپ» باشد.
+    // بالای بوم روی لبهٔ دورتر درِ لپ‌تاپ می‌افتد، یعنی cz + hh.
+    const pts = [
+      [-hw, cz + hh],
+      [hw, cz + hh],
+      [hw, cz - hh],
+      [-hw, cz - hh],
+    ];
+    const out = [];
+    for (const [lx, lz] of pts) {
+      _q.set(lx, -0.02, lz);
+      lidPivot.localToWorld(_q);
+      _q.project(camera);
+      out.push([
+        rect.left + ((_q.x + 1) / 2) * rect.width,
+        rect.top + ((1 - _q.y) / 2) * rect.height,
+      ]);
+    }
+    return out;
+  }
 
   function resize() {
     const w = canvas.clientWidth || canvas.parentElement?.clientWidth || 1;
@@ -479,25 +544,46 @@ export function createLaptopScene(canvas) {
     pointerSmooth.y += (pointer.y - pointerSmooth.y) * 0.06;
 
     /* درِ لپ‌تاپ */
-    const lidT = range(p, ACT.lid);
+    const lidT = seg(p, T.lid);
     let lidOpen = smooth(lidT);
     lidOpen += 0.035 * Math.sin(lidT * Math.PI * 3) * (1 - lidT);
     lidPivot.rotation.x = LAPTOP.OPEN_ANGLE * clamp(lidOpen);
 
-    /* صفحه */
-    const power = smooth(range(p, ACT.power));
-    const boot = 1 - smooth(range(p, ACT.splash));
-    const typed = Math.round(clamp(range(p, ACT.type)) * totalChars);
+    /* کل حالت دسکتاپ از پیشرفت اسکرول ساخته می‌شود */
+    const st = computeState(p, projects.length);
+    lastState = st;
 
     // CanvasTexture خودش تغییر بافت را تشخیص نمی‌دهد؛ هر بار که بوم دوباره
     // رسم شد باید صریحاً برای ارسال دوباره به GPU علامت‌گذاری شود.
-    const redrew = screenRenderer.draw({
-      typed,
-      power,
-      boot,
-      caret: Math.floor(frame / 33) % 2 === 0,
-    });
-    if (redrew) screenTex.needsUpdate = true;
+    if (desktop.draw(st)) screenTex.needsUpdate = true;
+
+    /* نشانگر موس */
+    const c = st.cursor;
+    cursor.visible = c.appear > 0.01;
+    cursor.material.opacity = c.appear;
+    if (cursor.visible) {
+      const cxp = (c.x / SW - 0.5) * LAPTOP.SCREEN_W;
+      const czp =
+        LID_H / 2 + LAPTOP.SCREEN_H / 2 - (c.y / SH) * LAPTOP.SCREEN_H;
+      cursor.position.set(cxp, -0.031, czp);
+
+      const click = Math.max(
+        c.clickComputer,
+        c.clickManage,
+        c.clickProjects,
+      );
+      cursor.scale.setScalar(1 - Math.sin(click * Math.PI) * 0.14);
+
+      const live = click > 0.002 && click < 0.998;
+      ripple.visible = live;
+      if (live) {
+        ripple.position.set(cxp, -0.033, czp);
+        ripple.material.opacity = (1 - click) * 0.85;
+        ripple.scale.setScalar(0.4 + click * 1.5);
+      }
+    } else {
+      ripple.visible = false;
+    }
 
     /* دوربین */
     const aspect = camera.aspect;
@@ -515,8 +601,8 @@ export function createLaptopScene(canvas) {
     const dFill = Math.min(dW, dH);
 
     // از اینجا به بعد دوربین قاب صفحه را کاملاً پر می‌کند
-    const blend = smooth(range(p, ACT.blend));
-    const dollyT = smooth(range(p, ACT.dolly));
+    const blend = smooth(seg(p, CAM.blend));
+    const dollyT = smooth(seg(p, CAM.dolly));
     const dist = dType + (dFill - dType) * dollyT;
 
     const framedPos = screenCenter.clone().addScaledVector(dir, dist);
@@ -536,13 +622,19 @@ export function createLaptopScene(canvas) {
     camera.lookAt(camLook);
 
     /* نور صفحه */
-    const glow = power * (0.35 + 0.65 * (1 - boot)) * 9;
+    const glow = st.power * (0.4 + 0.6 * st.desktop) * 9;
     screenLight.position.copy(screenCenter).addScaledVector(dir, 0.85);
     screenLight.intensity = glow;
     halo.material.opacity = 0.25 + 0.75 * blend;
 
     /* محو شدن در انتها */
-    canvas.style.opacity = String(1 - smooth(range(p, ACT.fade)));
+    canvas.style.opacity = String(1 - st.fade);
+
+    // ماتریس هم‌ترازی iframe روی صفحه (فقط وقتی پیش‌نمایش زنده باز است)
+    if (onLiveTransform) {
+      const m = quadToMatrix3d(SW, SH, screenQuad());
+      if (m) onLiveTransform(m);
+    }
 
     renderer.render(scene, camera);
   }
@@ -558,6 +650,7 @@ export function createLaptopScene(canvas) {
   resize();
   loop();
 
+
   return {
     setProgress(v) {
       targetProgress = clamp(v);
@@ -568,10 +661,19 @@ export function createLaptopScene(canvas) {
     setActive(v) {
       active = v;
     },
+    /** کلیک کاربر روی صفحه → مختصات در فضای ۱۶۰۰×۱۰۰۰ */
+    onScreenTap(fn) {
+      onScreenTap = fn;
+    },
+    /** هر فریم ماتریس هم‌ترازی پیش‌نمایش زنده را می‌دهد؛ null یعنی خاموش */
+    onLiveTransform(fn) {
+      onLiveTransform = fn;
+    },
     resize,
     dispose() {
       running = false;
       cancelAnimationFrame(frameId);
+      canvas.removeEventListener("pointerdown", handlePointerDown);
       disposables.forEach((d) => d.dispose?.());
       scene.traverse((o) => {
         o.geometry?.dispose?.();
@@ -583,5 +685,3 @@ export function createLaptopScene(canvas) {
     },
   };
 }
-
-export { SCREEN_W, SCREEN_H };

@@ -2688,7 +2688,7 @@ a.chip:hover {
 }
 
 html[data-motion="on"] .intro3d {
-  height: 520vh;
+  height: 900vh;
   /* نوار بالای صفحه در جریان عادی قرار دارد و هیرو را کمی پایین می‌برد.
      با این جابه‌جایی، نوار روی هیرو می‌افتد و بوم دقیقاً یک‌نمایشگر را می‌پوشاند.
      --nav-h در کامپوننت اندازه‌گیری و روی همین بخش ثبت می‌شود. */
@@ -2740,7 +2740,7 @@ html[data-motion="off"] .intro3d-canvas-wrap {
   );
   width: min(540px, 42vw);
   transform: translateY(calc(-50% - var(--p) * 46px));
-  opacity: clamp(0, calc(1 - var(--p) * 5.6), 1);
+  opacity: clamp(0, calc(1 - var(--p) * 24), 1);
   pointer-events: none;
 }
 
@@ -2772,7 +2772,7 @@ html[data-motion="off"] .intro3d-canvas-wrap {
   flex-direction: column;
   gap: 20px;
   opacity: calc(
-    clamp(0, (var(--p) - 0.26) * 9, 1) * clamp(0, (0.96 - var(--p)) * 20, 1)
+    clamp(0, (var(--p) - 0.05) * 22, 1) * clamp(0, (0.97 - var(--p)) * 26, 1)
   );
 }
 
@@ -2813,7 +2813,8 @@ html[data-motion="off"] .intro3d-canvas-wrap {
 .intro3d[data-phase="0"] .intro3d-rail-item[data-index="0"],
 .intro3d[data-phase="1"] .intro3d-rail-item[data-index="1"],
 .intro3d[data-phase="2"] .intro3d-rail-item[data-index="2"],
-.intro3d[data-phase="3"] .intro3d-rail-item[data-index="3"] {
+.intro3d[data-phase="3"] .intro3d-rail-item[data-index="3"],
+.intro3d[data-phase="4"] .intro3d-rail-item[data-index="4"] {
   opacity: 1;
   color: var(--text);
 }
@@ -2821,7 +2822,8 @@ html[data-motion="off"] .intro3d-canvas-wrap {
 .intro3d[data-phase="0"] .intro3d-rail-item[data-index="0"] .intro3d-rail-dot,
 .intro3d[data-phase="1"] .intro3d-rail-item[data-index="1"] .intro3d-rail-dot,
 .intro3d[data-phase="2"] .intro3d-rail-item[data-index="2"] .intro3d-rail-dot,
-.intro3d[data-phase="3"] .intro3d-rail-item[data-index="3"] .intro3d-rail-dot {
+.intro3d[data-phase="3"] .intro3d-rail-item[data-index="3"] .intro3d-rail-dot,
+.intro3d[data-phase="4"] .intro3d-rail-item[data-index="4"] .intro3d-rail-dot {
   border-color: transparent;
   background: var(--grad-brand);
   box-shadow: 0 0 0 4px rgba(77, 124, 255, 0.16);
@@ -2839,7 +2841,7 @@ html[data-motion="off"] .intro3d-canvas-wrap {
   gap: 11px;
   font-size: 12.5px;
   color: var(--text-3);
-  opacity: clamp(0, calc((0.08 - var(--p)) * 16), 1);
+  opacity: clamp(0, calc((0.04 - var(--p)) * 30), 1);
 }
 
 .intro3d-hint-wheel {
@@ -3193,6 +3195,64 @@ html[data-motion="off"] .intro3d-canvas-wrap {
     gap: 30px;
     padding-block: 92px 56px;
   }
+}
+
+/* ---------- پیش‌نمایش زندهٔ پروژه داخل صفحهٔ لپ‌تاپ ---------- */
+
+/* بوم باید کلیک بگیرد تا دکمهٔ «مشاهدهٔ سایت» کار کند؛ متن معرفی
+   بالای آن است و روی بوم قرار می‌گیرد، پس چیزی را نمی‌بندد. */
+.intro3d[data-mode="3d"] .intro3d-canvas-wrap {
+  pointer-events: auto;
+}
+
+.intro3d-live {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* این فریم هر فریم با matrix3d هم‌تراز می‌شود، پس خودش ۱۶۰۰×۱۰۰۰ است
+   و گوشه‌هایش روی صفحهٔ سه‌بعدی لپ‌تاپ می‌نشینند. */
+.intro3d-live-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1600px;
+  height: 1000px;
+  transform-origin: 0 0;
+  pointer-events: auto;
+  overflow: hidden;
+  background: #05060c;
+  border-radius: 4px;
+}
+
+.intro3d-live-frame iframe {
+  width: 1600px;
+  height: 1000px;
+  border: 0;
+  display: block;
+}
+
+.intro3d-live-close {
+  position: fixed;
+  z-index: 5;
+  bottom: 22px;
+  inset-inline-end: 22px;
+  padding: 10px 18px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line-strong);
+  background: rgba(10, 12, 20, 0.82);
+  backdrop-filter: blur(10px);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.intro3d-live-close:hover {
+  border-color: var(--blue);
 }
 
 @media (prefers-reduced-motion: reduce) {

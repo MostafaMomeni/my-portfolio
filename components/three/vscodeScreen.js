@@ -655,74 +655,51 @@ export function createScreenRenderer(opts = {}) {
 
   let lastKey = "";
 
-  /**
-   * صفحه را دوباره رسم می‌کند.
+/**
+   * رابط ویرایشگر را می‌کشد.
    *
-   * @param {{typed?:number, power?:number, boot?:number, caret?:boolean}} state
+   * @param {{typed?:number, caret?:boolean, rect?:{x:number,y:number,w:number,h:number}}} state
+   *   rect — اگر داده شود، کل رابط داخل این مستطیل مقیاس می‌خورد تا داخل
+   *   پنجره‌ی ویندوز بنشیند؛ در غیر این صورت کل بوم پر می‌شود.
    * @returns {boolean} اگر واقعاً رسم تازه انجام شده باشد true — برای آنکه
    *   ساخنده‌ی صحنه بداند بافت باید دوباره به GPU فرستاده شود.
    */
   function draw(state = {}) {
     const typed = state.typed ?? 0;
-    const power = state.power ?? 1;
-    const boot = state.boot ?? 0;
     const caret = state.caret ?? true;
+    const rect = state.rect;
 
-    // اگر هیچ‌چیز تغییر نکرده، دوباره رسم نکن.
-    const key = `${typed}|${power.toFixed(3)}|${boot.toFixed(3)}|${caret}`;
+    const key =
+      `${typed}|${caret}|` +
+      (rect
+        ? `${Math.round(rect.x)}:${Math.round(rect.y)}:${Math.round(rect.w)}:${Math.round(rect.h)}`
+        : "full");
+
     if (key === lastKey) return false;
     lastKey = key;
 
     g.fillStyle = "#000000";
-    g.fillRect(0, 0, SCREEN_W, SCREEN_H);
-    if (power <= 0.002) return true;
+    if (rect) g.fillRect(rect.x, rect.y, rect.w, rect.h);
+    else g.fillRect(0, 0, SCREEN_W, SCREEN_H);
 
     g.save();
-    g.globalAlpha = power;
-
-    // ویرایشگر با کمی زوم هنگام باز شدن برنامه
-    const launch = 1 - boot;
-    if (launch > 0.002) {
-      const zoom = 0.94 + 0.06 * smoothstep(clamp(launch));
-      g.save();
-      if (zoom !== 1) {
-        g.translate(SCREEN_W / 2, SCREEN_H / 2);
-        g.scale(zoom, zoom);
-        g.translate(-SCREEN_W / 2, -SCREEN_H / 2);
-      }
-      g.globalAlpha = power * smoothstep(clamp(launch * 1.15));
-      drawTitleBar();
-      drawActivityBar();
-      drawSidebar();
-      drawEditorBackground();
-      drawTabs();
-      drawCode(typed);
-      if (caret && typed > 0) drawCaret(typed);
-      drawMinimap();
-      drawStatusBar();
-      g.restore();
+    if (rect) {
+      g.translate(rect.x, rect.y);
+      g.scale(rect.w / SCREEN_W, rect.h / SCREEN_H);
     }
-
-    if (boot > 0.002) {
-      g.save();
-      g.globalAlpha = power * clamp(boot);
-      const zoom = 1 + (1 - boot) * 0.12;
-      g.translate(SCREEN_W / 2, SCREEN_H / 2);
-      g.scale(zoom, zoom);
-      g.translate(-SCREEN_W / 2, -SCREEN_H / 2);
-      drawSplash(boot);
-      g.restore();
-    }
-
-    g.restore();
-
-    g.save();
-    g.globalAlpha = power;
-    drawOverlay();
+    drawTitleBar();
+    drawActivityBar();
+    drawSidebar();
+    drawEditorBackground();
+    drawTabs();
+    drawCode(typed);
+    if (caret && typed > 0) drawCaret(typed);
+    drawMinimap();
+    drawStatusBar();
     g.restore();
 
     return true;
   }
 
-  return { canvas, draw };
+  return { canvas, draw, drawSplash, drawOverlay };
 }
