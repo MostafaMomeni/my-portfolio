@@ -89,6 +89,21 @@ export function windowRect(box, open, { scale = 0.94, from = "bottom" } = {}) {
 export const TITLEBAR_H = 54;
 
 /**
+ * چیدمان داخل کارت مرورگرِ پروژه.
+ *
+ * رندرکننده (drawProjectCard) و جای‌گذاری سایت زنده هر دو از همین اعداد
+ * استفاده می‌کنند تا سایت زنده دقیقاً روی همان کادری بنشیند که قبلاً تصویر
+ * پروژه را نشان می‌داد.
+ */
+export const CARD = {
+  pad: 14, // فاصلهٔ کارت تا لبهٔ صحنهٔ اسلایدر
+  urlPad: 14, // فاصلهٔ نوار آدرس تا لبهٔ کارت
+  tabH: 42, // نوار تب مرورگر
+  urlBarH: 44, // نوار آدرس
+  headH: 86, // tabH + urlBarH — سرصفحهٔ مرورگر
+};
+
+/**
  * چیدمان داخلی برنامه‌ی پروژه‌ها.
  *
  * هم رندرکننده و هم تستِ کلیک از همین تابع استفاده می‌کنند تا دکمهٔ
@@ -140,6 +155,22 @@ export function projectsGeometry() {
   };
 }
 
+/**
+ * کادری از صفحه که سایت زندهٔ پروژه در آن نمایش داده می‌شود.
+ *
+ * سایت کل صفحهٔ لپ‌تاپ را پر می‌کند و فقط داخل همان چهار گوشهٔ سه‌بعدی
+ * می‌نشیند؛ بیرون از لپ‌تاپ، صفحهٔ کاربر دست‌نخورده می‌ماند.
+ * مختصات در فضای ۱۶۰۰×۱۰۰۰ است.
+ */
+export function liveViewportRect() {
+  return { x: 0, y: 0, w: SW, h: SH };
+}
+
+/** اندازهٔ iframe زنده — برابر بوم صفحه، تا با بقیهٔ رابط هم‌مقیاس باشد. */
+export function liveFrameSize() {
+  return { w: SW, h: SH };
+}
+
 /* ---------- ابزارها ---------- */
 
 export const clamp = (v, a = 0, b = 1) => (v < a ? a : v > b ? b : v);
@@ -161,8 +192,9 @@ export const clickPulse = (p, range) => {
  * کل حالت صفحه را از پیشرفت اسکرول می‌سازد.
  * @param {number} p پیشرفت ۰ تا ۱
  * @param {number} projectCount تعداد پروژه‌ها برای اسلایدر
+ * @param {number} settle ۰ تا ۱ — چقدر اسلایدر روی نزدیک‌ترین آیتم بنشیند
  */
-export function computeState(p, projectCount = 1) {
+export function computeState(p, projectCount = 1, settle = 0) {
   const s = {};
   s.progress = p;
 
@@ -195,10 +227,15 @@ export function computeState(p, projectCount = 1) {
 
   const open = smooth(seg(p, T.projOpen)) * (1 - smooth(seg(p, T.fade)));
   const slide = seg(p, T.carousel);
+  const last = Math.max(0, projectCount - 1);
+  // اسلایدر باید فقط روی آیتم‌ها بنشیند؛ پس وقتی اسکرول متوقف شد، موقعیت
+  // خام به نزدیک‌ترین آیتم گرد می‌شود و بین دو آیتم رها نمی‌شود.
+  const raw = slide * last;
+  const pos = raw + (Math.round(raw) - raw) * clamp(settle);
   s.projects = {
     open,
-    pos: slide * Math.max(0, projectCount - 1),
-    index: Math.round(slide * Math.max(0, projectCount - 1)),
+    pos,
+    index: Math.round(pos),
   };
 
   /* مسیر موس — موقعیت آن در فضای ۱۶۰۰×۱۰۰۰ صفحه */

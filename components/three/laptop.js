@@ -19,6 +19,7 @@ import { makeCursorTexture, makeClickTexture } from "./cursor";
 import { quadToMatrix3d } from "./homography";
 import { projects } from "../../data/site";
 import { SW, SH, T, computeState, clamp, smooth, seg } from "./timeline";
+import { liveViewportRect, liveFrameSize } from "./timeline";
 
 /* ---------- ابعاد لپ‌تاپ (واحد: جهانی) ---------- */
 
@@ -40,7 +41,9 @@ LAPTOP.SCREEN_H = LAPTOP.LID_H - 2 * LAPTOP.BEZEL;
 
 /** بازه‌هایی که فقط به دوربین مربوط‌اند؛ بقیه در timeline.js است. */
 const CAM = {
-  blend: [0.045, 0.085],
+  // دوربین دیرتر نزدیک می‌شود تا لپ‌تاپ باز با کیبورد و ترک‌پدش چند لحظه
+  // کامل در قاب بماند، بعد روی صفحه قفل می‌شود.
+  blend: [0.115, 0.168],
   dolly: [0.955, 1.0],
 };
 
@@ -150,6 +153,8 @@ const SHOTS = [
   { p: 0.0, pos: [2.5, 4.3, 9.0], look: [2.0, 0.1, 0.0] },
   { p: 0.025, pos: [2.0, 3.5, 7.6], look: [1.5, 0.35, -0.25] },
   { p: 0.05, pos: [1.25, 2.5, 6.1], look: [0.6, 0.9, -0.9] },
+  // درِ باز و کیبورد و ترک‌پد، از روبه‌رو و کمی بالا
+  { p: 0.112, pos: [0.5, 2.3, 6.9], look: [0.0, 0.25, -0.2] },
 ];
 
 function sampleShots(p, wide) {
@@ -303,6 +308,8 @@ export function createLaptopScene(canvas) {
   laptop.add(base);
 
   // کیبورد + ترک‌پد
+  // نکته: صفحه باید روی *سطح* پایه بنشیند (BASE_T)، نه وسط آن؛ وگرنه داخل
+  // بدنه پنهان می‌شود و هرگز دیده نمی‌شود.
   const kbTex = track(makeKeyboardTexture());
   const kbW = BASE_W - 0.3;
   const kbD = BASE_D - 0.4;
@@ -317,7 +324,7 @@ export function createLaptopScene(canvas) {
     ),
   );
   keyboard.rotation.x = -Math.PI / 2;
-  keyboard.position.set(0, BASE_T / 2 + 0.002, 0.06);
+  keyboard.position.set(0, BASE_T + 0.002, 0.06);
   laptop.add(keyboard);
 
   // لولا
@@ -456,10 +463,15 @@ export function createLaptopScene(canvas) {
   let frame = 0;
   let running = true;
   let lastState = null;
+  // چرخه‌ی «نشستن» اسلایدر: بعد از توقف اسکرول به نزدیک‌ترین آیتم می‌رسد.
+  let restFrames = 0;
+  let settle = 0;
 
   // قلاب‌های اختیاری برای پیش‌نمایش زندهٔ پروژه‌ها
   let onScreenTap = null;
   let onLiveTransform = null;
+  // اندازهٔ ثابت iframe زنده در فضای صفحه
+  const liveSize = liveFrameSize();
 
   /* ---------- کلیک روی صفحه ---------- */
 
@@ -494,33 +506,41 @@ export function createLaptopScene(canvas) {
   const _q = new THREE.Vector3();
 
   /**
-   * چهار گوشهٔ صفحه را در مختصات مرورگر برمی‌گرداند.
-   * ترتیب: بالا‌چپ، بالا‌راست، پایین‌راست، پایین‌چپ
+   * چهار گوشهٔ یک مستطیل از فضای ۱۶۰۰×۱۰۰۰ صفحه را در مختصات مرورگر
+   * برمی‌گرداند.
+   *
+   * ترتیب خروجی حتماً باید «بالا‌چپ، بالا‌راست، پایین‌راست، پایین‌چپ» باشد
+   * چون همان ترتیبی است که هماگرافی انتظار دارد. بالای بوم روی لبهٔ دورترِ
+   * درِ لپ‌تاپ می‌افتد، یعنی سمتی که cz + hh است.
+   *
+   * @param {{x:number,y:number,w:number,h:number}} rect کادر در فضای صفحه
+   * @returns {Array<[number,number]>}
    */
-  function screenQuad() {
-    const hw = LAPTOP.SCREEN_W / 2;
+  function screenQuadFor(rect) {
     const hh = LAPTOP.SCREEN_H / 2;
     const cz = LID_H / 2;
-    const rect = canvas.getBoundingClientRect();
-    // ترتیب حتماً باید «بالا‌چپ، بالا‌راست، پایین‌راست، پایین‌چپ» باشد.
-    // بالای بوم روی لبهٔ دورتر درِ لپ‌تاپ می‌افتد، یعنی cz + hh.
-    const pts = [
-      [-hw, cz + hh],
-      [hw, cz + hh],
-      [hw, cz - hh],
-      [-hw, cz - hh],
-    ];
-    const out = [];
-    for (const [lx, lz] of pts) {
-      _q.set(lx, -0.02, lz);
+    const canvasRect = canvas.getBoundingClientRect();
+
+    const corner = (sx, sy) => {
+      _q.set(
+        (sx / SW - 0.5) * LAPTOP.SCREEN_W,
+        -0.02,
+        cz + hh - (sy / SH) * LAPTOP.SCREEN_H,
+      );
       lidPivot.localToWorld(_q);
       _q.project(camera);
-      out.push([
-        rect.left + ((_q.x + 1) / 2) * rect.width,
-        rect.top + ((1 - _q.y) / 2) * rect.height,
-      ]);
-    }
-    return out;
+      return [
+        canvasRect.left + ((_q.x + 1) / 2) * canvasRect.width,
+        canvasRect.top + ((1 - _q.y) / 2) * canvasRect.height,
+      ];
+    };
+
+    return [
+      corner(rect.x, rect.y),
+      corner(rect.x + rect.w, rect.y),
+      corner(rect.x + rect.w, rect.y + rect.h),
+      corner(rect.x, rect.y + rect.h),
+    ];
   }
 
   function resize() {
@@ -550,7 +570,14 @@ export function createLaptopScene(canvas) {
     lidPivot.rotation.x = LAPTOP.OPEN_ANGLE * clamp(lidOpen);
 
     /* کل حالت دسکتاپ از پیشرفت اسکرول ساخته می‌شود */
-    const st = computeState(p, projects.length);
+    // تا وقتی پیشرفت هنوز به هدف می‌رسد، کاربر دارد اسکرول می‌کند. به‌محض
+    // اینکه چند فریم آرام بماند، اسلایدر باید روی نزدیک‌ترین آیتم بنشیند.
+    if (Math.abs(targetProgress - progress) > 0.0025) restFrames = 0;
+    else restFrames++;
+    const settleTarget = restFrames > 5 ? 1 : 0;
+    settle += (settleTarget - settle) * (settleTarget > settle ? 0.16 : 0.3);
+
+    const st = computeState(p, projects.length, settle);
     lastState = st;
 
     // CanvasTexture خودش تغییر بافت را تشخیص نمی‌دهد؛ هر بار که بوم دوباره
@@ -630,9 +657,12 @@ export function createLaptopScene(canvas) {
     /* محو شدن در انتها */
     canvas.style.opacity = String(1 - st.fade);
 
-    // ماتریس هم‌ترازی iframe روی صفحه (فقط وقتی پیش‌نمایش زنده باز است)
+    // ماتریس هم‌ترازی iframe روی صفحه (فقط وقتی پیش‌نمایش زنده باز است).
+    // سایت روی کادرِ خودِ کارت پروژه می‌نشیند، نه روی کل صفحه؛ کادر با
+    // اسلایدر می‌لغزد، پس هر فریم از موقعیت تازه حساب می‌شود.
     if (onLiveTransform) {
-      const m = quadToMatrix3d(SW, SH, screenQuad());
+      const r = liveViewportRect(st.projects.pos);
+      const m = quadToMatrix3d(liveSize.w, liveSize.h, screenQuadFor(r));
       if (m) onLiveTransform(m);
     }
 

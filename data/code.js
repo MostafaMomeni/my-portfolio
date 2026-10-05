@@ -11,20 +11,84 @@
  */
 
 export const editorFile = {
-  file: "developer.py",
+  file: "developer.js",
   project: "mostafa-portfolio",
-  language: "Python 3.12.1",
+  language: "JavaScript",
   branch: "main",
 };
 
-/** خطوط فایل developer.py — دقیقاً همان چیزی که در هدر سایت بود. */
+/** خطوط فایل developer.js — جاوااسکریپت خالص و قابل اجرا. */
 export const codeLines = [
-  [{ t: "com", v: "# Frontend × Artificial Intelligence" }],
+  [{ t: "com", v: "// Frontend × Artificial Intelligence" }],
 
   [],
-
   [
     { t: "kw", v: "class" },
+    { t: "sp", v: " " },
+    { t: "fn", v: "Developer" },
+    { t: "p", v: " {" },
+  ],
+  [
+    { t: "kw", v: "constructor" },
+    { t: "p", v: "(" },
+    { t: "prop", v: "birth" },
+    { t: "p", v: ", " },
+    { t: "prop", v: "city" },
+    { t: "p", v: ", " },
+    { t: "prop", v: "country" },
+    { t: "p", v: ") {" },
+  ],
+  [
+    { t: "kw", v: "this" },
+    { t: "p", v: "." },
+    { t: "prop", v: "birth" },
+    { t: "p", v: " = " },
+    { t: "prop", v: "birth" },
+    { t: "p", v: ";" },
+  ],
+  [
+    { t: "kw", v: "this" },
+    { t: "p", v: "." },
+    { t: "prop", v: "city" },
+    { t: "p", v: " = " },
+    { t: "prop", v: "city" },
+    { t: "p", v: ";" },
+  ],
+  [
+    { t: "kw", v: "this" },
+    { t: "p", v: "." },
+    { t: "prop", v: "country" },
+    { t: "p", v: " = " },
+    { t: "prop", v: "country" },
+    { t: "p", v: ";" },
+  ],
+  [{ t: "p", v: "}" }],
+  [],
+  [
+    { t: "prop", v: "build" },
+    { t: "p", v: "(" },
+    { t: "prop", v: "idea" },
+    { t: "p", v: ") {" },
+  ],
+  [
+    { t: "kw", v: "return" },
+    { t: "sp", v: " " },
+    { t: "fn", v: "ship" },
+    { t: "p", v: "(" },
+    { t: "prop", v: "idea" },
+    { t: "p", v: ", { craft: " },
+    { t: "str", v: '"obsessed"' },
+    { t: "p", v: " } });" },
+  ],
+  [{ t: "p", v: "}" }],
+  [{ t: "p", v: "}" }],
+  [],
+  [
+    { t: "kw", v: "const" },
+    { t: "sp", v: " " },
+    { t: "prop", v: "me" },
+    { t: "p", v: " = " },
+    { t: "kw", v: "new" },
     { t: "sp", v: " " },
     { t: "fn", v: "Developer" },
     { t: "p", v: "(" },
@@ -33,72 +97,39 @@ export const codeLines = [
     { t: "str", v: '"Qom"' },
     { t: "p", v: ", " },
     { t: "str", v: '"Iran"' },
-    { t: "p", v: "):" },
+    { t: "p", v: ");" },
   ],
-
+  [],
   [
-    { t: "prop", v: "name" },
-    { t: "p", v: " = " },
-    { t: "str", v: '"Mostafa Momeni"' },
-  ],
-
-  [
+    { t: "prop", v: "me" },
+    { t: "p", v: "." },
     { t: "prop", v: "focus" },
     { t: "p", v: " = [" },
     { t: "str", v: '"Frontend"' },
     { t: "p", v: ", " },
     { t: "str", v: '"AI"' },
-    { t: "p", v: "]" },
+    { t: "p", v: "];" },
   ],
-
   [
+    { t: "prop", v: "me" },
+    { t: "p", v: "." },
     { t: "prop", v: "stack" },
     { t: "p", v: " = [" },
     { t: "str", v: '"React"' },
     { t: "p", v: ", " },
     { t: "str", v: '"Next.js"' },
     { t: "p", v: ", " },
-    { t: "str", v: '"Python"' },
-    { t: "p", v: "]" },
+    { t: "str", v: '"TypeScript"' },
+    { t: "p", v: "];" },
   ],
-
   [],
-
   [
-    { t: "kw", v: "def" },
-    { t: "sp", v: " " },
-    { t: "fn", v: "build" },
-    { t: "p", v: "(" },
-    { t: "prop", v: "self" },
-    { t: "p", v: ", " },
-    { t: "prop", v: "idea" },
-    { t: "p", v: "):" },
-  ],
-
-  [
-    { t: "kw", v: "return" },
-    { t: "sp", v: " " },
-    { t: "fn", v: "ship" },
-    { t: "p", v: "(" },
-    { t: "prop", v: "idea" },
-    { t: "p", v: ", " },
-    { t: "prop", v: "craft" },
-    { t: "p", v: "=" },
-    { t: "str", v: '"obsessed"' },
-    { t: "p", v: ")" },
-  ],
-
-  [],
-
-  [
-    { t: "fn", v: "Developer" },
-    { t: "p", v: "(" },
-    { t: "str", v: '"1384/10/25"' },
-    { t: "p", v: ")." },
-    { t: "fn", v: "build" },
+    { t: "prop", v: "me" },
+    { t: "p", v: "." },
+    { t: "prop", v: "build" },
     { t: "p", v: "(" },
     { t: "str", v: '"the next idea"' },
-    { t: "p", v: ")" },
+    { t: "p", v: ");" },
   ],
 ];
 

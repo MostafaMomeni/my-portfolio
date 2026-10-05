@@ -4,55 +4,74 @@
  * خروجی این ماژول به‌عنوان بافت روی صفحه‌ی لپ‌تاپ سه‌بعدی سوار می‌شود.
  * چون فقط متن و شکل‌های ساده است، canvas دو بعدی از نظر کیفیت متن و
  * سبک‌بودن خیلی بهتر از رندر سه‌بعدیِ متن است.
+ *
+ * چیدمان و رنگ‌ها از تم «Dark Modern» خودِ VS Code گرفته شده‌اند:
+ * نوار عنوان با جعبهٔ فرمان وسط، نوار فعالیت، پنل Explorer، تب‌ها،
+ * نوار مسیر، راهنمای تورفتگی، نقشهٔ کوچک و نوار وضعیت آبی.
  */
 
-import { codeLines, codeText, lineOffsets, editorFile } from "../../data/code";
+import { codeLines, codeText, editorFile } from "../../data/code";
 
 export const SCREEN_W = 1600;
 export const SCREEN_H = 1000;
 
 /* ---------- ابعاد چیدمان ---------- */
 
-const TITLE_H = 66;
-const TABS_H = 58;
-const STATUS_H = 44;
-const ACTIVITY_W = 70;
-const SIDEBAR_W = 340;
-const GUTTER_W = 80;
+const TITLE_H = 44; // نوار عنوان اختصاصی VS Code
+const TABS_H = 42; // نوار تب‌ها
+const CRUMB_H = 30; // نوار مسیر (breadcrumb)
+const STATUS_H = 34; // نوار وضعیت
+const ACTIVITY_W = 52; // نوار فعالیت
+const SIDEBAR_W = 300; // پنل Explorer
+const GUTTER_W = 74; // شماره خط‌ها + فاصله
 
 const EDITOR_X = ACTIVITY_W + SIDEBAR_W;
-const EDITOR_Y = TITLE_H + TABS_H;
+const EDITOR_Y = TITLE_H + TABS_H + CRUMB_H;
 const EDITOR_W = SCREEN_W - EDITOR_X;
 const EDITOR_H = SCREEN_H - EDITOR_Y - STATUS_H;
 
-const FONT_SIZE = 26;
-const LINE_H = 42;
-const CODE_X = EDITOR_X + GUTTER_W + 22;
-const CODE_TOP = EDITOR_Y + 58;
+const FONT_SIZE = 23;
+const LINE_H = 40;
+const CODE_X = EDITOR_X + GUTTER_W;
+const CODE_TOP = EDITOR_Y + 32;
+const INDENT = 34; // عرض یک سطح تورفتگی
 
 const MONO = '"JetBrains Mono", "Cascadia Code", Consolas, "SF Mono", ui-monospace, monospace';
-const SANS = '"Vazirmatn", "Segoe UI", Tahoma, sans-serif';
+const SANS = '"Segoe UI", "Vazirmatn", Tahoma, sans-serif';
 
-/* ---------- رنگ‌ها (تم تیره VS Code) ---------- */
+/* ---------- رنگ‌های تم Dark Modern ---------- */
 
 const C = {
-  editor: "#1f1f1f",
-  sidebar: "#181818",
-  activity: "#181818",
-  border: "#2b2b2b",
-  fg: "#cccccc",
-  lineNum: "#5a5f6b",
-  lineNumActive: "#c9c9c9",
-  activeLine: "#2a2d2e",
   titlebar: "#181818",
+  titleFg: "#cccccc",
+  titleDim: "#9d9d9d",
+  activity: "#181818",
+  activityBorder: "#2b2b2b",
+  sidebar: "#181818",
+  sidebarBorder: "#2b2b2b",
+  section: "#cccccc",
+  editor: "#1f1f1f",
+  editorFg: "#cccccc",
+  tabs: "#181818",
   tabActive: "#1f1f1f",
-  tabActiveFg: "#ffffff",
-  tabInactive: "#2d2d2d",
-  tabInactiveFg: "#8f8f8f",
-  status: "#007acc",
-  statusFg: "#ffffff",
-  accent: "#4d7cff",
-  section: "#bbbbbb",
+  tabActiveBorder: "#0078d4",
+  tabInactiveFg: "#9d9d9d",
+  border: "#2b2b2b",
+  status: "#181818",
+  statusFg: "#cccccc",
+  lineNum: "#6e7681",
+  lineNumActive: "#cccccc",
+  activeLine: "#282828",
+  indentGuide: "#404040",
+  input: "#313131",
+  inputBorder: "#3c3c3c",
+  minimap: "#cccccc",
+  iconDim: "#868686",
+  iconOn: "#ffffff",
+  accent: "#0078d4",
+  warning: "#cca700",
+  error: "#f14c4c",
+  jsFile: "#e8c547",
 };
 
 const TOK = {
@@ -108,6 +127,37 @@ function blob(g, x, y, r, color) {
   g.fill();
 }
 
+/** آیکون فایل جاوااسکریپت: مربع «JS» زرد، درست مثل آیکون VS Code. */
+function jsFileIcon(g, x, y, s) {
+  g.save();
+  g.translate(x, y);
+  g.fillStyle = "#e8c547";
+  g.beginPath();
+  g.roundRect(-s / 2, -s / 2, s, s, 2);
+  g.fill();
+  g.fillStyle = "#1f1f1f";
+  g.font = `700 ${Math.round(s * 0.66)}px ${SANS}`;
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillText("JS", 0, s * 0.04);
+  g.restore();
+}
+
+/* ---------- درخت فایل ---------- */
+
+const TREE = [
+  { label: "MOSTAFA-PORTFOLIO", depth: 0, kind: "root", open: true },
+  { label: ".gitignore", depth: 1, kind: "file" },
+  { label: "developer.js", depth: 1, kind: "js", active: true },
+  { label: "app", depth: 1, kind: "folder" },
+  { label: "components", depth: 1, kind: "folder" },
+  { label: "data", depth: 1, kind: "folder" },
+  { label: "public", depth: 1, kind: "folder" },
+  { label: "next.config.js", depth: 1, kind: "js" },
+  { label: "package.json", depth: 1, kind: "json" },
+  { label: "README.md", depth: 1, kind: "md" },
+];
+
 /* ---------- ساخت رندر ---------- */
 
 /**
@@ -134,288 +184,415 @@ export function createScreenRenderer(opts = {}) {
     return w;
   };
 
-  /* ---------- نوار عنوان ---------- */
+  /* ---------- نوار عنوان اختصاصی VS Code ---------- */
+
   function drawTitleBar() {
     g.fillStyle = C.titlebar;
     g.fillRect(0, 0, SCREEN_W, TITLE_H);
 
-    const dotY = TITLE_H / 2;
-    const dots = ["#ff5f57", "#febc2e", "#28c840"];
-    dots.forEach((color, i) => {
-      g.fillStyle = color;
-      g.beginPath();
-      g.arc(34 + i * 32, dotY, 9, 0, Math.PI * 2);
-      g.fill();
-    });
+    // لوگوی VS Code در چپ
+    const logo = VSCODE_PATH;
+    g.save();
+    g.translate(20, TITLE_H / 2 - 11);
+    g.scale(0.92, 0.92);
+    g.fillStyle = "#0098ff";
+    g.fill(logo);
+    g.restore();
 
-    g.font = `500 21px ${SANS}`;
-    g.fillStyle = "#b4b4b4";
-    g.textAlign = "center";
-    g.fillText(
-      `${editorFile.file} — ${editorFile.project}`,
-      SCREEN_W / 2,
-      dotY + 8,
-    );
+    g.font = `500 16px ${SANS}`;
+    g.fillStyle = C.titleDim;
     g.textAlign = "left";
+    g.fillText(editorFile.project, 44, TITLE_H / 2 + 6);
 
-    // دکمه‌های پنجره در سمت چپ
-    g.strokeStyle = "#8a8a8a";
-    g.lineWidth = 2;
-    const bx = SCREEN_W - 40;
-    g.strokeRect(bx - 46, dotY - 10, 20, 20);
-    g.beginPath();
-    g.moveTo(bx - 52, dotY - 10);
-    g.lineTo(bx - 52, dotY + 10);
-    g.stroke();
-    g.beginPath();
-    g.moveTo(bx - 40, dotY - 18);
-    g.lineTo(bx - 28, dotY - 18);
-    g.lineTo(bx - 28, dotY - 2);
-    g.stroke();
-
-    g.strokeStyle = "#2b2b2b";
+    // جعبهٔ فرمان وسط نوار عنوان — امضای ظاهری VS Code
+    const cw = 460;
+    const ch = 26;
+    const cx = (SCREEN_W - cw) / 2;
+    const cy = (TITLE_H - ch) / 2;
+    g.fillStyle = C.input;
+    roundRect(g, cx, cy, cw, ch, 6);
+    g.fill();
+    g.strokeStyle = C.inputBorder;
     g.lineWidth = 1;
-    g.beginPath();
-    g.moveTo(0, TITLE_H - 0.5);
-    g.lineTo(SCREEN_W, TITLE_H - 0.5);
     g.stroke();
+
+    g.strokeStyle = C.iconDim;
+    g.lineWidth = 1.6;
+    g.beginPath();
+    g.arc(cx + 16, cy + ch / 2, 5.5, 0, Math.PI * 2);
+    g.moveTo(cx + 20, cy + ch / 2 + 5);
+    g.lineTo(cx + 24, cy + ch / 2 + 9);
+    g.stroke();
+
+    g.font = `400 15px ${SANS}`;
+    g.fillStyle = C.titleDim;
+    g.textAlign = "left";
+    g.fillText(`${editorFile.file} — ${editorFile.project}`, cx + 32, cy + ch / 2 + 5);
+
+    // دکمه‌های پنجره در راست، مثل ویندوز
+    const bw = 46;
+    const by = TITLE_H / 2;
+    let bx = SCREEN_W - bw / 2;
+    const winButtons = [
+      { kind: "close", hover: "#c42b1c" },
+      { kind: "max", hover: "#313131" },
+      { kind: "min", hover: "#313131" },
+    ];
+    for (const b of winButtons) {
+      g.strokeStyle = b.kind === "close" ? "#cccccc" : "#d0d0d0";
+      g.lineWidth = 1.2;
+      if (b.kind === "min") {
+        g.beginPath();
+        g.moveTo(bx - 6, by + 5);
+        g.lineTo(bx + 6, by + 5);
+        g.stroke();
+      } else if (b.kind === "max") {
+        g.strokeRect(bx - 6, by - 6, 12, 12);
+      } else {
+        g.beginPath();
+        g.moveTo(bx - 6, by - 6);
+        g.lineTo(bx + 6, by + 6);
+        g.moveTo(bx + 6, by - 6);
+        g.lineTo(bx - 6, by + 6);
+        g.stroke();
+      }
+      bx -= bw;
+    }
   }
 
   /* ---------- نوار فعالیت ---------- */
+
+  const ACTIVITY_ICONS = [
+    "files",
+    "search",
+    "control",
+    "debug",
+    "extensions",
+  ];
+
   function drawActivityBar() {
     g.fillStyle = C.activity;
     g.fillRect(0, TITLE_H, ACTIVITY_W, SCREEN_H - TITLE_H);
 
     const cx = ACTIVITY_W / 2;
-    let y = TITLE_H + 54;
-    const step = 62;
+    let y = TITLE_H + 34;
+    const step = 56;
 
-    const stroke = (color) => {
-      g.strokeStyle = color;
-      g.fillStyle = color;
-      g.lineWidth = 2.4;
-      g.lineCap = "round";
-    };
-
-    // فایل‌ها (فعال)
-    stroke(C.fg);
-    g.beginPath();
-    g.moveTo(cx - 11, y - 12);
-    g.lineTo(cx + 4, y - 12);
-    g.lineTo(cx + 11, y - 6);
-    g.lineTo(cx + 11, y + 14);
-    g.lineTo(cx - 11, y + 14);
-    g.closePath();
-    g.stroke();
-    g.beginPath();
-    g.moveTo(cx - 11, y - 5);
-    g.lineTo(cx + 2, y - 5);
-    g.lineTo(cx + 11, y + 3);
-    g.stroke();
-
-    // نشان فعال
-    g.fillStyle = C.fg;
-    g.fillRect(0, y - 22, 3, 44);
-
-    y += step;
-    stroke("#868686");
-    g.beginPath();
-    g.arc(cx - 2, y - 3, 9, 0, Math.PI * 2);
-    g.stroke();
-    g.beginPath();
-    g.moveTo(cx + 5, y + 5);
-    g.lineTo(cx + 13, y + 13);
-    g.stroke();
-
-    y += step;
-    stroke("#868686");
-    [[0, -16], [0, 0], [0, 16]].forEach(([dx, dy]) => {
-      g.beginPath();
-      g.arc(cx + dx, y + dy, 4.5, 0, Math.PI * 2);
-      g.fill();
-    });
-    g.beginPath();
-    g.moveTo(cx, y - 11);
-    g.lineTo(cx, y + 11);
-    g.stroke();
-
-    y += step;
-    stroke("#868686");
-    g.beginPath();
-    g.moveTo(cx - 12, y - 9);
-    g.lineTo(cx - 3, y);
-    g.lineTo(cx - 12, y + 9);
-    g.closePath();
-    g.stroke();
-
-    y += step;
-    stroke("#868686");
-    for (const [dx, dy] of [
-      [-10, -10],
-      [10, -10],
-      [-10, 10],
-      [10, 10],
-    ]) {
-      g.strokeRect(cx + dx - 5, y + dy - 5, 10, 10);
+    for (let i = 0; i < ACTIVITY_ICONS.length; i++) {
+      drawActivityIcon(cx, y, ACTIVITY_ICONS[i], i === 0);
+      if (i === 0) {
+        g.fillStyle = C.iconOn;
+        g.fillRect(0, y - 15, 2, 30);
+      }
+      y += step;
     }
 
-    // چرخ‌دنده، پایین نوار
-    const gy = SCREEN_H - STATUS_H - 46;
-    stroke("#868686");
+    // چرخ‌دندهٔ تنظیمات، پایین نوار
+    drawGear(cx, SCREEN_H - STATUS_H - 34);
+
+    g.strokeStyle = C.activityBorder;
+    g.lineWidth = 1;
     g.beginPath();
-    g.arc(cx, gy, 9, 0, Math.PI * 2);
+    g.moveTo(ACTIVITY_W - 0.5, TITLE_H);
+    g.lineTo(ACTIVITY_W - 0.5, SCREEN_H - STATUS_H);
+    g.stroke();
+  }
+
+  function drawActivityIcon(cx, cy, kind, active) {
+    g.strokeStyle = active ? C.iconOn : C.iconDim;
+    g.fillStyle = active ? C.iconOn : C.iconDim;
+    g.lineWidth = 1.7;
+    g.lineCap = "round";
+    g.lineJoin = "round";
+
+    if (kind === "files") {
+      g.beginPath();
+      g.moveTo(cx - 11, cy - 13);
+      g.lineTo(cx + 2, cy - 13);
+      g.lineTo(cx + 11, cy - 5);
+      g.lineTo(cx + 11, cy + 13);
+      g.lineTo(cx - 11, cy + 13);
+      g.closePath();
+      g.stroke();
+      g.beginPath();
+      g.moveTo(cx - 11, cy - 6);
+      g.lineTo(cx, cy - 6);
+      g.lineTo(cx + 11, cy + 4);
+      g.stroke();
+    } else if (kind === "search") {
+      g.beginPath();
+      g.arc(cx - 2, cy - 3, 8, 0, Math.PI * 2);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(cx + 4, cy + 3);
+      g.lineTo(cx + 11, cy + 10);
+      g.stroke();
+    } else if (kind === "control") {
+      const dots = [
+        [-10, -6],
+        [0, -6],
+        [10, -6],
+        [-10, 6],
+        [0, 6],
+        [10, 6],
+      ];
+      for (const [dx, dy] of dots) {
+        g.beginPath();
+        g.arc(cx + dx, cy + dy, 3, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.moveTo(cx - 10, cy - 3);
+      g.lineTo(cx - 10, cy + 3);
+      g.moveTo(cx, cy - 3);
+      g.lineTo(cx, cy + 3);
+      g.moveTo(cx + 10, cy - 3);
+      g.lineTo(cx + 10, cy + 3);
+      g.stroke();
+    } else if (kind === "debug") {
+      g.beginPath();
+      g.moveTo(cx - 6, cy - 13);
+      g.lineTo(cx + 6, cy - 13);
+      g.lineTo(cx + 6, cy - 3);
+      g.lineTo(cx - 6, cy - 3);
+      g.closePath();
+      g.stroke();
+      g.fillRect(cx - 2, cy - 3, 4, 9);
+      g.fillRect(cx - 8, cy + 6, 16, 3);
+    } else {
+      // extensions: چهار قطعه، یکی جدا افتاده
+      const blocks = [
+        [-9, -11, 8, 8],
+        [1, -11, 8, 8],
+        [-9, 1, 8, 8],
+        [3, 3, 7, 7],
+      ];
+      for (const [dx, dy, bw2, bh2] of blocks) {
+        g.strokeRect(cx + dx, cy + dy, bw2, bh2);
+      }
+    }
+  }
+
+  function drawGear(cx, cy) {
+    g.strokeStyle = C.iconDim;
+    g.fillStyle = C.iconDim;
+    g.lineWidth = 1.7;
+    g.lineCap = "round";
+    g.beginPath();
+    g.arc(cx, cy, 6, 0, Math.PI * 2);
     g.stroke();
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
       g.beginPath();
-      g.moveTo(cx + Math.cos(a) * 9, gy + Math.sin(a) * 9);
-      g.lineTo(cx + Math.cos(a) * 14, gy + Math.sin(a) * 14);
+      g.moveTo(cx + Math.cos(a) * 9, cy + Math.sin(a) * 9);
+      g.lineTo(cx + Math.cos(a) * 13, cy + Math.sin(a) * 13);
       g.stroke();
     }
   }
 
-  /* ---------- نوار کناری (Explorer) ---------- */
-  const TREE = [
-    { label: "MOSTAFA-PORTFOLIO", depth: 0, kind: "root", open: true },
-    { label: "developer.py", depth: 1, kind: "file", open: false, active: true },
-    { label: "app", depth: 1, kind: "folder", open: false },
-    { label: "components", depth: 1, kind: "folder", open: false },
-    { label: "data", depth: 1, kind: "folder", open: false },
-    { label: "public", depth: 1, kind: "folder", open: false },
-    { label: "package.json", depth: 1, kind: "file", open: false },
-    { label: "README.md", depth: 1, kind: "file", open: false },
-  ];
+  /* ---------- پنل Explorer ---------- */
+
+  function fileIcon(g2, x, y, kind) {
+    if (kind === "js") {
+      jsFileIcon(g2, x + 8, y - 5, 17);
+    } else if (kind === "json") {
+      g2.fillStyle = "#cbcb41";
+      g2.beginPath();
+      g2.roundRect(x, y - 13, 13, 15, 2);
+      g2.fill();
+      g2.strokeStyle = "#1f1f1f";
+      g2.lineWidth = 1.4;
+      g2.beginPath();
+      g2.moveTo(x + 3, y - 8);
+      g2.quadraticCurveTo(x + 7, y - 6, x + 10, y - 8);
+      g2.moveTo(x + 3, y - 4);
+      g2.quadraticCurveTo(x + 7, y - 2, x + 10, y - 4);
+      g2.stroke();
+    } else if (kind === "md") {
+      g2.fillStyle = "#519aba";
+      g2.beginPath();
+      g2.roundRect(x, y - 13, 14, 16, 2);
+      g2.fill();
+      g2.fillStyle = "#1f1f1f";
+      g2.font = `700 9px ${SANS}`;
+      g2.textAlign = "center";
+      g2.textBaseline = "middle";
+      g2.fillText("M↓", x + 7, y - 5);
+    } else if (kind === "folder") {
+      g2.fillStyle = "#dcb67a";
+      g2.beginPath();
+      g2.moveTo(x, y - 5);
+      g2.lineTo(x, y - 11);
+      g2.lineTo(x + 6, y - 11);
+      g2.lineTo(x + 8, y - 8);
+      g2.lineTo(x + 14, y - 8);
+      g2.lineTo(x + 14, y - 5);
+      g2.closePath();
+      g2.fill();
+    } else if (kind === "root") {
+      g2.strokeStyle = "#c5c5c5";
+      g2.lineWidth = 1.6;
+      g2.beginPath();
+      g2.moveTo(x + 1, y - 8);
+      g2.lineTo(x + 5, y - 4);
+      g2.lineTo(x + 1, y);
+      g2.stroke();
+    } else {
+      g2.fillStyle = "#c5c5c5";
+      g2.beginPath();
+      g2.roundRect(x + 1, y - 12, 13, 14, 2);
+      g2.fill();
+    }
+  }
 
   function drawSidebar() {
     const x0 = ACTIVITY_W;
     g.fillStyle = C.sidebar;
     g.fillRect(x0, TITLE_H, SIDEBAR_W, SCREEN_H - TITLE_H - STATUS_H);
 
-    g.font = `700 17px ${SANS}`;
+    // عنوان بخش، با دکمه‌های کنارش مثل Explorer واقعی
+    g.font = `400 11px ${SANS}`;
     g.fillStyle = C.section;
-    g.fillText("EXPLORER", x0 + 26, TITLE_H + 44);
+    g.textAlign = "left";
+    g.textBaseline = "middle";
+    g.fillText("EXPLORER", x0 + 22, TITLE_H + 26);
 
-    g.strokeStyle = C.border;
-    g.lineWidth = 1;
+    g.strokeStyle = C.iconDim;
+    g.fillStyle = C.iconDim;
+    g.lineWidth = 1.5;
+    // سه نقطهٔ بالا
+    for (let i = 0; i < 3; i++) {
+      g.fillRect(x0 + SIDEBAR_W - 56 + i * 14, TITLE_H + 23, 3, 3);
+    }
+    // آیکون فایل‌های جدید
     g.beginPath();
-    g.moveTo(x0 + 0.5, TITLE_H);
-    g.lineTo(x0 + 0.5, SCREEN_H - STATUS_H);
+    g.moveTo(x0 + SIDEBAR_W - 32, TITLE_H + 20);
+    g.lineTo(x0 + SIDEBAR_W - 20, TITLE_H + 20);
+    g.lineTo(x0 + SIDEBAR_W - 20, TITLE_H + 32);
     g.stroke();
 
-    let y = TITLE_H + 88;
+    g.strokeStyle = C.sidebarBorder;
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(x0, TITLE_H + TABS_H + CRUMB_H - 0.5);
+    g.lineTo(x0 + SIDEBAR_W, TITLE_H + TABS_H + CRUMB_H - 0.5);
+    g.stroke();
+
+    let y = TITLE_H + TABS_H + CRUMB_H + 26;
     for (const item of TREE) {
       if (item.active) {
-        g.fillStyle = "#2a2d2e";
-        g.fillRect(x0, y - 22, SIDEBAR_W, 36);
-        g.fillStyle = "#04395e";
-        g.fillRect(x0, y - 22, 2, 36);
+        g.fillStyle = "#37373d";
+        g.fillRect(x0, y - 12, SIDEBAR_W, 24);
+        g.fillStyle = C.accent;
+        g.fillRect(x0, y - 12, 2, 24);
       }
 
-      const ix = x0 + 24 + item.depth * 20;
+      const ix = x0 + 16 + item.depth * 14;
 
-      // پیکان پوشه
+      // پیکان باز/بستهٔ پوشه
       if (item.kind === "folder" || item.kind === "root") {
-        g.strokeStyle = C.fg;
-        g.lineWidth = 2;
+        g.strokeStyle = "#cccccc";
+        g.lineWidth = 1.6;
         g.beginPath();
         if (item.open) {
-          g.moveTo(ix, y - 6);
-          g.lineTo(ix + 6, y);
-          g.lineTo(ix, y + 6);
+          g.moveTo(ix - 4, y - 8);
+          g.lineTo(ix + 1, y - 3);
+          g.lineTo(ix - 4, y + 2);
         } else {
-          g.moveTo(ix - 4, y - 6);
-          g.lineTo(ix + 2, y);
-          g.lineTo(ix - 4, y + 6);
+          g.moveTo(ix - 7, y - 5);
+          g.lineTo(ix - 2, y);
+          g.lineTo(ix - 7, y + 5);
         }
         g.stroke();
       }
 
-      const tx = ix + 16;
-
-      // آیکون فایل پایتون
-      if (item.kind === "file" && item.label.endsWith(".py")) {
-        const fx = tx + 2;
-        const fy = y - 12;
-        g.fillStyle = "#4b8bbe";
-        roundRect(g, fx, fy, 15, 19, 3);
-        g.fill();
-        g.fillStyle = "#fdd043";
-        g.beginPath();
-        g.ellipse(fx + 7.5, fy + 7, 4.5, 4, 0, 0, Math.PI * 2);
-        g.fill();
-      } else if (item.kind === "file") {
-        g.strokeStyle = "#c5c5c5";
-        g.lineWidth = 1.8;
-        g.strokeRect(tx + 2, y - 12, 14, 17);
+      const labelX = ix + 14;
+      if (item.kind !== "root" && item.kind !== "folder") {
+        fileIcon(g, labelX, y + 2, item.kind);
       }
 
-      g.font = `500 20px ${SANS}`;
-      g.fillStyle = item.active ? "#ffffff" : "#c8c8c8";
-      g.fillText(item.label, tx + 26, y + 4);
+      g.font = `${item.active ? 400 : 400} 15px ${SANS}`;
+      g.fillStyle = item.active ? "#ffffff" : "#cccccc";
+      g.textAlign = "left";
+      g.textBaseline = "middle";
+      const tx = item.kind === "root" || item.kind === "folder" ? labelX : labelX + 22;
+      g.fillText(item.label, tx, y);
 
-      y += 36;
+      y += 24;
     }
 
-    // پایین نوار کناری
-    g.strokeStyle = C.border;
+    // بخش OUTLINE خالی، پایین Explorer
+    g.font = `400 11px ${SANS}`;
+    g.fillStyle = C.section;
+    g.textAlign = "left";
+    g.fillText("OUTLINE", x0 + 22, y + 14);
+
+    g.strokeStyle = C.iconDim;
+    g.fillStyle = C.iconDim;
+    for (let i = 0; i < 3; i++) {
+      g.fillRect(x0 + SIDEBAR_W - 56 + i * 14, y + 11, 3, 3);
+    }
+    g.beginPath();
+    g.arc(x0 + 32, y + 13, 6, 0, Math.PI * 2);
+    g.stroke();
+
+    g.strokeStyle = C.sidebarBorder;
+    g.lineWidth = 1;
     g.beginPath();
     g.moveTo(x0, SCREEN_H - STATUS_H + 0.5);
     g.lineTo(SCREEN_W, SCREEN_H - STATUS_H + 0.5);
     g.stroke();
   }
 
-  /* ---------- پس‌زمینه‌ی ویرایشگر ---------- */
+  /* ---------- ویرایشگر ---------- */
+
   function drawEditorBackground() {
     g.fillStyle = C.editor;
-    g.fillRect(EDITOR_X, TITLE_H, EDITOR_W, SCREEN_H - TITLE_H - STATUS_H);
+    g.fillRect(EDITOR_X, EDITOR_Y, EDITOR_W, EDITOR_H);
   }
 
-  /* ---------- تب‌ها ---------- */
   function drawTabs() {
-    g.fillStyle = C.titlebar;
+    g.fillStyle = C.tabs;
     g.fillRect(EDITOR_X, TITLE_H, EDITOR_W, TABS_H);
 
     // تب فعال
     g.fillStyle = C.tabActive;
-    g.fillRect(EDITOR_X, TITLE_H, 250, TABS_H);
-    g.fillStyle = C.border;
-    g.fillRect(EDITOR_X + 250, TITLE_H + 8, 1, TABS_H - 8);
+    g.fillRect(EDITOR_X, TITLE_H, 240, TABS_H);
+    g.fillStyle = C.tabActiveBorder; // نوار آبی بالای تب فعال
+    g.fillRect(EDITOR_X, TITLE_H, 240, 1.5);
 
     // تب غیرفعال
-    g.fillStyle = C.tabInactive;
-    g.fillRect(EDITOR_X + 252, TITLE_H + 6, 190, TABS_H - 6);
-    g.font = `400 19px ${SANS}`;
-    g.fillStyle = C.tabInactiveFg;
-    g.fillText("README.md", EDITOR_X + 300, TITLE_H + 36);
-    g.strokeStyle = "#868686";
-    g.lineWidth = 1.8;
-    g.strokeRect(EDITOR_X + 272, TITLE_H + 18, 15, 17);
-
-    // تب فعال: آیکون پایتون + نام فایل
-    const ix = EDITOR_X + 30;
-    const iy = TITLE_H + 17;
-    g.fillStyle = "#4b8bbe";
-    roundRect(g, ix, iy, 16, 20, 3);
-    g.fill();
-    g.fillStyle = "#fdd043";
+    g.fillStyle = "#2d2d2d";
     g.beginPath();
-    g.ellipse(ix + 8, iy + 7.5, 4.8, 4.2, 0, 0, Math.PI * 2);
+    g.roundRect(EDITOR_X + 242, TITLE_H + 5, 150, TABS_H - 5, 6);
     g.fill();
 
-    g.font = `400 20px ${SANS}`;
-    g.fillStyle = C.tabActiveFg;
-    g.fillText(editorFile.file, ix + 28, TITLE_H + 37);
+    // --- تب فعال: developer.js ---
+    jsFileIcon(g, EDITOR_X + 24, TITLE_H + TABS_H / 2, 16);
+    g.font = `400 15px ${SANS}`;
+    g.fillStyle = "#ffffff";
+    g.textAlign = "left";
+    g.textBaseline = "middle";
+    g.fillText(editorFile.file, EDITOR_X + 40, TITLE_H + TABS_H / 2 + 1);
 
-    // دکمه بستن
+    // × بستن تب فعال
     g.strokeStyle = "#cccccc";
-    g.lineWidth = 1.8;
+    g.lineWidth = 1.4;
     g.beginPath();
-    g.moveTo(EDITOR_X + 226, TITLE_H + 26);
-    g.lineTo(EDITOR_X + 236, TITLE_H + 36);
-    g.moveTo(EDITOR_X + 236, TITLE_H + 26);
-    g.lineTo(EDITOR_X + 226, TITLE_H + 36);
+    g.moveTo(EDITOR_X + 208, TITLE_H + TABS_H / 2 - 5);
+    g.lineTo(EDITOR_X + 218, TITLE_H + TABS_H / 2 + 5);
+    g.moveTo(EDITOR_X + 218, TITLE_H + TABS_H / 2 - 5);
+    g.lineTo(EDITOR_X + 208, TITLE_H + TABS_H / 2 + 5);
     g.stroke();
 
+    // --- تب غیرفعال: README.md ---
+    fileIcon(g, EDITOR_X + 260, TITLE_H + TABS_H / 2 + 2, "md");
+    g.font = `400 15px ${SANS}`;
+    g.fillStyle = C.tabInactiveFg;
+    g.fillText("README.md", EDITOR_X + 284, TITLE_H + TABS_H / 2 + 1);
+
+    // خط جداکنندهٔ تب‌ها
     g.strokeStyle = C.border;
     g.lineWidth = 1;
     g.beginPath();
@@ -424,99 +601,187 @@ export function createScreenRenderer(opts = {}) {
     g.stroke();
   }
 
+  function drawBreadcrumb() {
+    g.fillStyle = C.editor;
+    g.fillRect(EDITOR_X, TITLE_H + TABS_H, EDITOR_W, CRUMB_H);
+
+    const cy = TITLE_H + TABS_H + CRUMB_H / 2;
+    g.font = `400 14px ${SANS}`;
+    g.textBaseline = "middle";
+    g.textAlign = "left";
+
+    // نمادهای مسیر: ‹ › و ·
+    g.fillStyle = C.titleDim;
+    g.fillText(editorFile.project, EDITOR_X + 20, cy);
+    let x = EDITOR_X + 20 + g.measureText(editorFile.project).width;
+    g.fillStyle = "#5a5a5a";
+    g.fillText("›", x + 8, cy);
+    x += 16;
+    g.fillStyle = "#cccccc";
+    g.fillText("developer.js", x + 6, cy);
+    x += 6 + g.measureText("developer.js").width;
+    g.fillStyle = "#5a5a5a";
+    g.fillText("›", x + 8, cy);
+    x += 16;
+    g.fillStyle = "#cccccc";
+    g.fillText("build", x + 6, cy);
+
+    g.strokeStyle = C.border;
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(EDITOR_X, TITLE_H + TABS_H + CRUMB_H - 0.5);
+    g.lineTo(SCREEN_W, TITLE_H + TABS_H + CRUMB_H - 0.5);
+    g.stroke();
+  }
+
   /* ---------- نوار وضعیت ---------- */
+
   function drawStatusBar() {
     const y = SCREEN_H - STATUS_H;
     g.fillStyle = C.status;
     g.fillRect(0, y, SCREEN_W, STATUS_H);
 
-    g.font = `400 18px ${SANS}`;
-    g.fillStyle = C.statusFg;
+    const cy = y + STATUS_H / 2 + 1;
+    g.font = `400 14px ${SANS}`;
+    g.textBaseline = "middle";
+    g.textAlign = "left";
 
-    // آیکون شاخه
+    // شاخهٔ گیت
     g.strokeStyle = C.statusFg;
-    g.lineWidth = 2;
+    g.lineWidth = 1.5;
     g.beginPath();
-    g.arc(24, y + STATUS_H / 2, 4, 0, Math.PI * 2);
-    g.moveTo(24, y + STATUS_H / 2 - 4);
-    g.lineTo(24, y + STATUS_H / 2 - 11);
-    g.moveTo(24, y + STATUS_H / 2 - 11);
-    g.lineTo(33, y + STATUS_H / 2 - 11);
+    g.arc(18, cy + 2, 4, 0, Math.PI * 2);
+    g.moveTo(18, cy - 2);
+    g.lineTo(18, cy - 9);
+    g.moveTo(18, cy - 9);
+    g.lineTo(27, cy - 9);
     g.stroke();
     g.beginPath();
-    g.arc(33, y + STATUS_H / 2 - 11, 4, 0, Math.PI * 2);
+    g.arc(27, cy - 9, 4, 0, Math.PI * 2);
     g.stroke();
-
     g.fillStyle = C.statusFg;
-    g.fillText(editorFile.branch, 46, y + STATUS_H / 2 + 7);
+    g.fillText(editorFile.branch, 36, cy);
 
-    g.fillText("×", 150, y + STATUS_H / 2 + 7);
+    // خطا و هشدار
     g.strokeStyle = C.statusFg;
     g.lineWidth = 1.6;
     g.beginPath();
-    g.arc(184, y + STATUS_H / 2 - 2, 3.5, 0, Math.PI * 2);
-    g.moveTo(181, y + STATUS_H / 2 + 3);
-    g.lineTo(187, y + STATUS_H / 2 + 9);
-    g.moveTo(187, y + STATUS_H / 2 + 3);
-    g.lineTo(181, y + STATUS_H / 2 + 9);
+    g.arc(112, cy + 1, 6.5, 0, Math.PI * 2);
+    g.moveTo(109, cy + 4);
+    g.lineTo(115, cy + 10);
+    g.moveTo(115, cy + 4);
+    g.lineTo(109, cy + 10);
     g.stroke();
     g.fillStyle = C.statusFg;
-    g.fillText("0", 196, y + STATUS_H / 2 + 7);
+    g.fillText("0", 122, cy);
+    g.fillText("0", 152, cy);
 
-    // سمت راست نوار وضعیت
+    // سمت راست
     g.textAlign = "right";
-    const rightText = `${editorFile.language}   UTF-8   LF   Python   ☑  Go Live`;
-    g.fillText(rightText, SCREEN_W - 26, y + STATUS_H / 2 + 7);
-    g.textAlign = "left";
+    g.fillStyle = C.statusFg;
+    const right = `Ln 9, Col 18   Spaces: 2   UTF-8   LF   { }   ${editorFile.language}   Prettier`;
+    g.fillText(right, SCREEN_W - 22, cy);
   }
 
   /* ---------- نقشه کوچک ---------- */
+
   function drawMinimap() {
-    const mw = 132;
+    const mw = 96;
     const mx = SCREEN_W - mw - 18;
     let my = CODE_TOP + 4;
 
     g.save();
     for (const plan of LINE_PLANS) {
-      if (!plan.toks.length) continue;
+      if (!plan.toks.length) {
+        my += 15;
+        continue;
+      }
       let px = mx;
       for (const tk of plan.toks) {
-        const w = Math.max(3, Math.min(widthOf(tk.v) * 0.42, 96));
-        g.globalAlpha = tk.t === "sp" ? 0.3 : 0.75;
+        const w = Math.max(3, Math.min(widthOf(tk.v) * 0.36, 70));
+        g.globalAlpha = tk.t === "sp" ? 0.25 : 0.72;
         g.fillStyle = TOK[tk.t] || "#888";
-        g.fillRect(px, my, w, 6);
-        px += w + 4;
+        g.fillRect(px, my, w, 5);
+        px += w + 3;
         if (px > mx + mw) break;
       }
-      my += 16;
+      my += 15;
+    }
+    g.restore();
+
+    // نوار پوشش بالای نقشه، مثل اسکرول‌بار
+    g.fillStyle = "rgba(120,120,120,0.18)";
+    g.fillRect(SCREEN_W - mw - 14, CODE_TOP, 12, EDITOR_H - 40);
+    g.fillStyle = "rgba(120,120,120,0.4)";
+    g.fillRect(SCREEN_W - mw - 14, CODE_TOP + 10, 12, 120);
+  }
+
+  /* ---------- تورفتگی و خط فعال ---------- */
+
+  /** عمق تورفتگی هر خط، از روی فاصلهٔ اولین توکن غیرخالی. */
+  function indentOf(line) {
+    let lead = "";
+    for (const tk of line) {
+      if (tk.t === "sp") lead += tk.v;
+      else break;
+    }
+    return (lead.match(/ {1,}/g) || []).reduce((n, m) => n + m.length, 0);
+  }
+
+  const INDENTS = codeLines.map(indentOf);
+
+  function drawIndentGuides(activeIndex) {
+    g.save();
+    g.strokeStyle = C.indentGuide;
+    g.lineWidth = 1;
+    for (let i = 0; i < LINE_PLANS.length; i++) {
+      const base = CODE_TOP + i * LINE_H - FONT_SIZE + 4;
+      const depth = INDENTS[i];
+      for (let d = 1; d <= depth; d++) {
+        const x = CODE_X + d * INDENT - 12;
+        // خط تورفتگی کنار خط فعال روشن‌تر است، مثل VS Code
+        g.globalAlpha = i === activeIndex ? 1 : 0.5;
+        g.beginPath();
+        g.moveTo(x + 0.5, base);
+        g.lineTo(x + 0.5, base + LINE_H);
+        g.stroke();
+      }
     }
     g.restore();
   }
 
+  function drawActiveLine(activeIndex) {
+    const y = CODE_TOP + activeIndex * LINE_H - FONT_SIZE + 4;
+    g.fillStyle = C.activeLine;
+    g.fillRect(EDITOR_X, y, EDITOR_W, LINE_H);
+    // خط عمودی کنار شمارهٔ خط، مثل lineHighlightBorder
+    g.fillStyle = "#282828";
+    g.fillRect(EDITOR_X, y, 2, LINE_H);
+  }
+
   /* ---------- کد ---------- */
+
   function drawCode(typed) {
-    // خط فعال
     let activeLine = 0;
     for (let i = 0; i < LINE_PLANS.length; i++) {
       if (typed >= LINE_PLANS[i].start) activeLine = i;
     }
 
-    const ay = CODE_TOP + activeLine * LINE_H;
-    g.fillStyle = C.activeLine;
-    g.fillRect(EDITOR_X, ay - FONT_SIZE, EDITOR_W, LINE_H);
+    drawActiveLine(activeLine);
+    drawIndentGuides(activeLine);
 
     g.font = `${FONT_SIZE}px ${MONO}`;
     g.textBaseline = "alphabetic";
 
     for (let i = 0; i < LINE_PLANS.length; i++) {
       const plan = LINE_PLANS[i];
-      const y = CODE_TOP + i * LINE_H + FONT_SIZE;
+      const y = CODE_TOP + i * LINE_H + FONT_SIZE - 4;
 
-      // شماره خط
+      // شماره خط، راست‌چین در گودال
       g.font = `${FONT_SIZE}px ${MONO}`;
       g.fillStyle = i === activeLine ? C.lineNumActive : C.lineNum;
       g.textAlign = "right";
-      g.fillText(String(i + 1), EDITOR_X + GUTTER_W - 16, y);
+      g.fillText(String(i + 1), EDITOR_X + GUTTER_W - 22, y);
       g.textAlign = "left";
 
       if (!plan.toks.length) continue;
@@ -528,13 +793,14 @@ export function createScreenRenderer(opts = {}) {
         const bright = clamp(shown - tk.start, 0, tk.len);
         if (bright > 0) {
           const head = tk.v.slice(0, bright);
-          g.fillStyle = TOK[tk.t] || C.fg;
+          g.fillStyle = TOK[tk.t] || C.editorFg;
           g.fillText(head, x, y);
           x += widthOf(head);
         }
         const rest = tk.v.slice(bright);
         if (rest) {
-          g.fillStyle = "rgba(212,212,212,0.15)";
+          // متنِ هنوز تایپ‌نشده کم‌رنگ است، مثل انتخاب نوشتهٔ در حال تایپ
+          g.fillStyle = "rgba(212,212,212,0.16)";
           g.fillText(rest, x, y);
           x += widthOf(rest);
         }
@@ -543,13 +809,14 @@ export function createScreenRenderer(opts = {}) {
   }
 
   /* ---------- مکان‌نما ---------- */
+
   function caretPoint(typed) {
     let x = CODE_X;
-    let y = CODE_TOP + FONT_SIZE;
+    let y = CODE_TOP + FONT_SIZE - 4;
     for (let i = 0; i < LINE_PLANS.length; i++) {
       const plan = LINE_PLANS[i];
       const shown = clamp(typed - plan.start, 0, plan.len);
-      y = CODE_TOP + i * LINE_H + FONT_SIZE;
+      y = CODE_TOP + i * LINE_H + FONT_SIZE - 4;
       if (shown >= plan.len) {
         x = CODE_X + widthOf(codeText[i]);
       } else {
@@ -568,7 +835,7 @@ export function createScreenRenderer(opts = {}) {
   function drawCaret(typed) {
     const { x, y } = caretPoint(typed);
     g.fillStyle = "#aeafad";
-    g.fillRect(x, y - FONT_SIZE + 3, 4, FONT_SIZE + 5);
+    g.fillRect(x, y - FONT_SIZE + 3, 2.5, FONT_SIZE + 4);
   }
 
   /* ---------- صفحه‌ی راه‌اندازی (splash) ---------- */
@@ -582,14 +849,11 @@ export function createScreenRenderer(opts = {}) {
     g.fillRect(0, 0, SCREEN_W, SCREEN_H);
 
     const cx = SCREEN_W / 2;
-    const cy = SCREEN_H / 2 - 40;
+    const cy = SCREEN_H / 2 - 30;
 
-    // هاله‌ی پشت لوگو
-    blob(g, cx, cy + 20, 260, "rgba(0,122,204,0.16)");
-    blob(g, cx, cy + 20, 130, "rgba(77,124,255,0.14)");
+    blob(g, cx, cy + 20, 280, "rgba(0,120,212,0.16)");
 
-    // لوگوی VS Code
-    const s = 4.6;
+    const s = 5;
     g.save();
     g.translate(cx - (24 * s) / 2, cy - (24 * s) / 2);
     g.scale(s, s);
@@ -597,30 +861,31 @@ export function createScreenRenderer(opts = {}) {
     g.fill(VSCODE_PATH);
     g.restore();
 
-    g.font = `600 34px ${SANS}`;
-    g.fillStyle = "#e7e7e7";
     g.textAlign = "center";
-    g.fillText("Visual Studio Code", cx, cy + 130);
+    g.textBaseline = "alphabetic";
+    g.font = `300 40px ${SANS}`;
+    g.fillStyle = "#e7e7e7";
+    g.fillText("Visual Studio Code", cx, cy + 140);
 
-    g.font = `400 24px ${SANS}`;
+    g.font = `400 22px ${SANS}`;
     g.fillStyle = "#8a8a8a";
-    g.fillText("Starting up...", cx, cy + 178);
+    g.fillText("Starting up...", cx, cy + 184);
 
-    // نوار پیشرفت
-    const bw = 340;
-    const bh = 5;
+    // نوار پیشرفت باریک وسط، مثل صفحهٔ راه‌اندازی واقعی
+    const bw = 220;
+    const bh = 3;
     const bx = cx - bw / 2;
-    const by = cy + 210;
+    const by = cy + 216;
     g.fillStyle = "#2a2d2e";
-    roundRect(g, bx, by, bw, bh, 3);
+    roundRect(g, bx, by, bw, bh, 2);
     g.fill();
     const fill = clamp(smoothstep(boot));
     if (fill > 0.02) {
       const grad = g.createLinearGradient(bx, 0, bx + bw, 0);
-      grad.addColorStop(0, "#4d7cff");
-      grad.addColorStop(1, "#22d3ee");
+      grad.addColorStop(0, "#0098ff");
+      grad.addColorStop(1, "#4d7cff");
       g.fillStyle = grad;
-      roundRect(g, bx, by, Math.max(bh, bw * fill), bh, 3);
+      roundRect(g, bx, by, Math.max(bh, bw * fill), bh, 2);
       g.fill();
     }
 
@@ -629,14 +894,12 @@ export function createScreenRenderer(opts = {}) {
 
   /* ---------- لایه‌های روی صفحه ---------- */
   function drawOverlay() {
-    // خطوط اسکن
     g.save();
     g.globalAlpha = 0.04;
     g.fillStyle = "#000";
     for (let y = 0; y < SCREEN_H; y += 4) g.fillRect(0, y, SCREEN_W, 1);
     g.restore();
 
-    // وینیت
     const grad = g.createRadialGradient(
       SCREEN_W / 2,
       SCREEN_H / 2,
@@ -655,7 +918,7 @@ export function createScreenRenderer(opts = {}) {
 
   let lastKey = "";
 
-/**
+  /**
    * رابط ویرایشگر را می‌کشد.
    *
    * @param {{typed?:number, caret?:boolean, rect?:{x:number,y:number,w:number,h:number}}} state
@@ -692,6 +955,7 @@ export function createScreenRenderer(opts = {}) {
     drawSidebar();
     drawEditorBackground();
     drawTabs();
+    drawBreadcrumb();
     drawCode(typed);
     if (caret && typed > 0) drawCaret(typed);
     drawMinimap();

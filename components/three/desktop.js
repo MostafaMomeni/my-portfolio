@@ -6,13 +6,35 @@
  * پروژه‌ها با اسلایدر را می‌کشد.
  */
 
-import { profile, skillGroups, education, experience, projects } from "../../data/site";
+import { profile, skillGroups, projects } from "../../data/site";
 import { totalChars } from "../../data/code";
 import { createScreenRenderer, SCREEN_W, SCREEN_H } from "./vscodeScreen";
-import { SW, SH, LAYOUT, TITLEBAR_H, projectsGeometry, clamp } from "./timeline";
+import { SW, SH, LAYOUT, TITLEBAR_H, CARD, projectsGeometry, clamp } from "./timeline";
 
-const UI = '"Segoe UI Variable Display", "Segoe UI", Tahoma, system-ui, sans-serif';
+// دانا اول از همه می‌آید تا همهٔ متن‌های فارسیِ داخل لپ‌تاپ با آن کشیده شوند.
+// اگر فونت هنوز بارگذاری نشده باشد، بوم خودکار به Vazirmatn برمی‌گردد —
+// برای همین صحنه صبر می‌کند تا همهٔ وزن‌ها آماده شوند.
+const UI = '"DanaFaNum", "Vazirmatn", "Segoe UI", Tahoma, system-ui, sans-serif';
 const MONO = '"Cascadia Code", Consolas, ui-monospace, monospace';
+
+/** وزن‌هایی از دانا که رابط ویندوز استفاده می‌کند. */
+export const DANA_WEIGHTS = [400, 500, 600, 700, 800];
+
+/**
+ * فونت دانا را پیش از نخستین رسم بوم بار می‌کند.
+ *
+ * بوم دوبعدی فقط فونتی را می‌کشد که در سند بارگذاری شده باشد؛ اگر زودتر
+ * رسم شود، متن فارسی با فونت جایگزین کشیده می‌شود و دیگر عوض نمی‌شود.
+ */
+export async function loadDana() {
+  if (typeof document === "undefined" || !document.fonts) return;
+  await Promise.all(
+    DANA_WEIGHTS.map((w) =>
+      document.fonts.load(`${w} 32px "DanaFaNum"`).catch(() => null),
+    ),
+  );
+  await document.fonts.ready;
+}
 
 /* ---------- رنگ‌های ویندوز ۱۱ ---------- */
 const W = {
@@ -182,6 +204,130 @@ function iconProjects(g, x, y, s) {
 
 const ICONS = { computer: iconMonitor, recycle: iconTrash, projects: iconProjects };
 
+/* ---------- اطلاعات واقعی سیستم کاربر ---------- */
+
+/**
+ * وضعیت زندهٔ سیستم، همان‌طور که مرورگر اجازه می‌دهد.
+ *
+ * باتری و شبکه API استاندارد دارند و واقعاً از سیستم خوانده می‌شوند. اما
+ * *بلندی صدای سیستم* هیچ APIای در وب ندارد؛ تنها چیزی که می‌شود دید،
+ * وجود خروجی صوتی است. پس صدا را از خودِ سیستم نمی‌خوانیم و ادعای
+ * عدد ساختگی هم نمی‌کنیم.
+ */
+const system = {
+  battery: null, // { level: ۰ تا ۱, charging: bool }
+  batteryKnown: false,
+  online: true,
+  netType: "", // "wifi" | "cellular" | "ethernet" | "none"
+  netLabel: "", // "4g" و مانند آن
+  audioOut: false,
+};
+
+/** پایش سیستم؛ تابع پاک‌سازی برمی‌گرداند. */
+export function watchSystem() {
+  if (typeof navigator === "undefined") return () => {};
+  const off = [];
+  const add = (target, type, fn, opts) => {
+    if (!target?.addEventListener) return;
+    target.addEventListener(type, fn, opts);
+    off.push(() => target.removeEventListener(type, fn, opts));
+  };
+
+  // --- باتری ---
+  if (navigator.getBattery) {
+    navigator
+      .getBattery()
+      .then((b) => {
+        const read = () => {
+          system.batteryKnown = true;
+          system.battery = { level: b.level, charging: b.charging };
+        };
+        read();
+        add(b, "levelchange", read);
+        add(b, "chargingchange", read);
+      })
+      .catch(() => {});
+  }
+
+  // --- شبکه ---
+  const readNet = () => {
+    system.online = navigator.onLine !== false;
+    const c = navigator.connection;
+    system.netType = c?.type || (system.online ? "wifi" : "none");
+    system.netLabel = c?.effectiveType || "";
+  };
+  readNet();
+  add(window, "online", readNet);
+  add(window, "offline", readNet);
+  add(navigator.connection, "change", readNet);
+
+  // --- خروجی صوتی ---
+  if (navigator.mediaDevices?.enumerateDevices) {
+    navigator.mediaDevices
+      .enumerateDevices()
+      .then((list) => {
+        system.audioOut = list.some((d) => d.kind === "audiooutput");
+      })
+      .catch(() => {});
+    add(navigator.mediaDevices, "devicechange", () => {
+      navigator.mediaDevices
+        .enumerateDevices()
+        .then((list) => {
+          system.audioOut = list.some((d) => d.kind === "audiooutput");
+        })
+        .catch(() => {});
+    });
+  }
+
+  return () => off.forEach((f) => f());
+}
+
+/** رشتهٔ کلید رندر؛ هر تغییر سیستم باید بوم را دوباره بکشد. */
+function systemKey() {
+  const b = system.battery;
+  return [
+    b ? `${Math.round(b.level * 100)}${b.charging ? "c" : ""}` : "-",
+    system.online ? "1" : "0",
+    system.netType,
+    system.netLabel,
+    system.audioOut ? "a" : "-",
+  ].join("|");
+}
+
+/**
+ * ساعت و تاریخ همین لحظه، با تقویم و ارقام فارسی.
+ *
+ * شکل‌دهنده‌ها یک‌بار ساخته و نگه داشته می‌شوند؛ ساختن دوبارهٔ آن‌ها در هر
+ * فریم گران است. اگر مرورگر دادهٔ محلی نداشته باشد، به متن خالی برمی‌گردیم.
+ */
+let clockFormats = null;
+
+function readClock(now = new Date()) {
+  if (clockFormats === null) {
+    try {
+      clockFormats = {
+        time: new Intl.DateTimeFormat("fa-IR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        }),
+        date: new Intl.DateTimeFormat("fa-IR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }),
+      };
+    } catch {
+      clockFormats = false;
+    }
+  }
+  if (!clockFormats) return { time: "", date: "" };
+  return {
+    time: clockFormats.time.format(now),
+    date: clockFormats.date.format(now),
+  };
+}
+
 /* ---------- ساخت رندر ---------- */
 
 export function createDesktopRenderer() {
@@ -316,22 +462,43 @@ export function createDesktopRenderer() {
     }
   }
 
-  /** آیکون‌های سیستمی سمت راست نوار وظیفه. */
+  /**
+   * آیکون‌های سیستمی سمت راست نوار وظیفه.
+   *
+   * هر کدام از وضعیت واقعی سیستم کاربر می‌خواند: باتری از Battery API،
+   * شبکه از Network Information API و آنلاین‌بودن، و صدا فقط از
+   * وجود خروجی صوتی — چون بلندی صدا در وب قابل خواندن نیست.
+   */
   function drawTrayIcon(cx, cy, kind) {
-    g.strokeStyle = W.taskFg;
-    g.fillStyle = W.taskFg;
-    g.lineWidth = 2;
     g.lineCap = "round";
+
     if (kind === "wifi") {
+      if (!system.online) {
+        // آنتن ندارد: فقط یک نقطه، مثل ویندوز وقتی آفلاین است
+        g.fillStyle = "#7d7d85";
+        g.beginPath();
+        g.arc(cx, cy + 7, 3, 0, Math.PI * 2);
+        g.fill();
+        return;
+      }
+      g.strokeStyle = W.taskFg;
+      g.lineWidth = 2.2;
       for (let i = 0; i < 3; i++) {
         g.beginPath();
         g.arc(cx, cy + 9, 4 + i * 5, -Math.PI * 0.75, -Math.PI * 0.25);
         g.stroke();
       }
+      g.fillStyle = W.taskFg;
       g.beginPath();
-      g.arc(cx, cy + 10, 1.8, 0, Math.PI * 2);
+      g.arc(cx, cy + 10, 2, 0, Math.PI * 2);
       g.fill();
-    } else if (kind === "volume") {
+      return;
+    }
+
+    if (kind === "volume") {
+      g.strokeStyle = system.audioOut ? W.taskFg : "#7d7d85";
+      g.fillStyle = system.audioOut ? W.taskFg : "#7d7d85";
+      g.lineWidth = 2;
       g.beginPath();
       g.moveTo(cx - 8, cy - 3);
       g.lineTo(cx - 4, cy - 3);
@@ -341,16 +508,59 @@ export function createDesktopRenderer() {
       g.lineTo(cx - 8, cy + 3);
       g.closePath();
       g.fill();
+      if (system.audioOut) {
+        g.beginPath();
+        g.arc(cx + 2, cy, 7, -Math.PI * 0.35, Math.PI * 0.35);
+        g.stroke();
+      } else {
+        // خط مورب: خروجی صوتی در دسترس نیست
+        g.strokeStyle = "#7d7d85";
+        g.beginPath();
+        g.moveTo(cx + 4, cy - 7);
+        g.lineTo(cx + 12, cy + 7);
+        g.stroke();
+      }
+      return;
+    }
+
+    // --- باتری ---
+    const level = system.battery?.level ?? 1;
+    const charging = system.battery?.charging ?? false;
+    const known = system.batteryKnown;
+    const dim = known && !charging && level <= 0.2 ? "#e6a23c" : W.taskFg;
+
+    g.strokeStyle = dim;
+    g.fillStyle = dim;
+    g.lineWidth = 1.8;
+    // بدنهٔ باتری + قطب
+    g.beginPath();
+    g.roundRect(cx - 11, cy - 6, 19, 12, 3);
+    g.stroke();
+    g.beginPath();
+    g.roundRect(cx + 9, cy - 2.5, 2.5, 5, 1.5);
+    g.fill();
+
+    if (known) {
+      // پرشدگی واقعی
+      const inner = Math.max(0, Math.min(1, level)) * 15;
+      g.fillStyle = dim;
       g.beginPath();
-      g.arc(cx + 2, cy, 7, -Math.PI * 0.35, Math.PI * 0.35);
-      g.stroke();
-    } else {
-      g.lineWidth = 1.8;
-      g.beginPath();
-      g.roundRect(cx - 9, cy - 5, 17, 10, 2.5);
-      g.stroke();
-      g.fillRect(cx - 7, cy - 3, 9, 6);
-      g.fillRect(cx + 9, cy - 2, 2, 4);
+      g.roundRect(cx - 9.5, cy - 4.5, inner, 9, 1.6);
+      g.fill();
+
+      if (charging) {
+        // صاعقهٔ شارژ، مثل ویندوز
+        g.fillStyle = "#18181a";
+        g.beginPath();
+        g.moveTo(cx + 1, cy - 8);
+        g.lineTo(cx - 4, cy + 1);
+        g.lineTo(cx - 0.5, cy + 1);
+        g.lineTo(cx - 2.5, cy + 8);
+        g.lineTo(cx + 4, cy - 1);
+        g.lineTo(cx + 0.5, cy - 1);
+        g.closePath();
+        g.fill();
+      }
     }
   }
 
@@ -392,13 +602,7 @@ export function createDesktopRenderer() {
       }
       const s = 34;
       if (app.key === "projects") {
-        g.save();
-        g.translate(cx - s / 2, cy - s / 2);
-        g.translate(s / 2, s / 2);
-        g.scale(0.44, 0.44);
-        g.translate(-s / 2, -s / 2);
-        iconProjects(g, 0, 0, s);
-        g.restore();
+        iconProjects(g, cx, cy, s);
       } else {
         iconMonitor(g, cx, cy, s);
       }
@@ -418,19 +622,20 @@ export function createDesktopRenderer() {
     g.roundRect(ox - 7, y + H / 2 - 7, 14, 14, 2);
     g.stroke();
 
-    // سیستم تری + ساعت
+    // سیستم تری + ساعت لحظه‌ای
     let tx = SW - 26;
     g.direction = "ltr";
     g.textAlign = "right";
     g.textBaseline = "alphabetic";
+    const ck = readClock();
     g.fillStyle = W.taskFg;
     g.font = `600 17px ${UI}`;
-    g.fillText("10:24", tx, y + 24);
+    g.fillText(ck.time, tx, y + 24);
     g.font = `400 15px ${UI}`;
     g.fillStyle = "rgba(242,242,245,0.7)";
-    g.fillText("1404/10/05", tx, y + 43);
+    g.fillText(ck.date, tx, y + 43);
 
-    tx -= 78;
+    tx -= 92;
     drawTrayIcon(tx, y + H / 2, "wifi");
     tx -= 34;
     drawTrayIcon(tx, y + H / 2, "volume");
@@ -591,22 +796,28 @@ export function createDesktopRenderer() {
     g.save();
     g.globalAlpha = clamp01(st.vscode.open);
 
-    const contentTop = winFrame(r, "developer.py — mostafa-portfolio", {
-      accent: "#0078d4",
-    });
+    // VS Code نوار عنوان و دکمه‌های پنجرهٔ خودش را دارد، پس اینجا فقط سایه و
+    // گردی گوشه‌ها کشیده می‌شود تا با بقیهٔ پنجره‌های ویندوز هم‌خوان بماند.
+    g.save();
+    g.shadowColor = W.winShadow;
+    g.shadowBlur = 40;
+    g.shadowOffsetY = 14;
+    g.fillStyle = "#181818";
+    rr(g, r.x, r.y, r.w, r.h, 10);
+    g.fill();
+    g.restore();
 
-    // بدنه‌ی پنجره در فضای ۱۶۰۰×۱۰۰۰ کشیده می‌شود
     const body = {
       x: r.x + 2,
-      y: contentTop,
+      y: r.y + 2,
       w: r.w - 4,
-      h: r.y + r.h - contentTop - 2,
+      h: r.h - 4,
     };
 
     g.save();
-    rr(g, body.x, body.y, body.w, body.h, 0);
+    rr(g, body.x, body.y, body.w, body.h, 8);
     g.clip();
-    g.fillStyle = "#1f1f1f";
+    g.fillStyle = "#181818";
     g.fillRect(body.x, body.y, body.w, body.h);
 
     g.save();
@@ -641,11 +852,11 @@ export function createDesktopRenderer() {
     g.restore();
   }
 
-  /* ---------- پنجره‌ی «دربارهٔ من» — چیدمان مینیمال ---------- */
+  /* ---------- پنجرهٔ «دربارهٔ من» — چیدمان مینیمال ---------- */
 
-  /** یک جداکنندهٔ افقی نازک. */
+  /** جداکنندهٔ افقی نازک. */
   function hairline(x1, x2, y) {
-    g.strokeStyle = "rgba(0,0,0,0.08)";
+    g.strokeStyle = "rgba(20,20,26,0.08)";
     g.lineWidth = 1;
     g.beginPath();
     g.moveTo(x1, y + 0.5);
@@ -653,6 +864,17 @@ export function createDesktopRenderer() {
     g.stroke();
   }
 
+  const ABOUT_STATS = [
+    { v: "۶", l: "پروژهٔ وب" },
+    { v: "۱", l: "پروژهٔ هوش مصنوعی" },
+    { v: "۱۲", l: "مخزن عمومی" },
+  ];
+
+  /**
+   * یک ستون باریک و وسط‌چین با فاصله‌های سخاوتمندانه.
+   * سابقهٔ شغلی و تحصیلی عمداً اینجا نیست؛ همین صفحه در صحنهٔ کوتاهی باز
+   * می‌شود و هرچه خلوت‌تر باشد، خواناتر.
+   */
   function drawAbout(st) {
     if (st.about.open <= 0.01) return;
     const r = LAYOUT.windows.about;
@@ -665,20 +887,24 @@ export function createDesktopRenderer() {
     g.rect(r.x + 2, top, r.w - 4, r.y + r.h - top);
     g.clip();
 
-    // محتوا روی پس‌زمینهٔ سفید تمیز، بدون کارت و بدون نوار رنگی
     g.fillStyle = "#ffffff";
     g.fillRect(r.x + 2, top, r.w - 4, r.y + r.h - top);
 
-    // فضای محتوا وسط‌چین و باریک — مینیمال
     const cx = r.x + r.w / 2;
-    const w = 880;
+    const w = 760;
     const x = cx - w / 2;
-    let y = top + 44;
+    let y = top + 46;
 
-    const N = 5;
+    const N = 4;
     const rev = (i) => {
       const v = stepReveal(st.about.reveal, i, N);
-      return { a: v, dy: (1 - v) * 22 };
+      return { a: v, dy: (1 - v) * 26 };
+    };
+
+    /** جداکننده با فاصلهٔ یکسان بالا و پایین. */
+    const rule = (gap) => {
+      hairline(x, x + w, y + gap);
+      y += gap * 2;
     };
 
     /* ۱) هویت — آواتار، نام، نقش، مکان */
@@ -687,44 +913,42 @@ export function createDesktopRenderer() {
       g.save();
       g.globalAlpha = clamp01(st.about.open * s.a);
       g.translate(0, s.dy);
-      g.direction = "rtl";
-      g.textAlign = "right";
+      g.textAlign = "center";
+      g.textBaseline = "middle";
 
-      const av = 72;
+      const av = 66;
       const ax = cx - av / 2;
       const ag = g.createLinearGradient(ax, y, ax + av, y + av);
       ag.addColorStop(0, "#4d7cff");
       ag.addColorStop(1, "#8b5cf6");
       g.fillStyle = ag;
       g.beginPath();
-      g.arc(ax + av / 2, y + av / 2, av / 2, 0, Math.PI * 2);
+      g.arc(cx, y + av / 2, av / 2, 0, Math.PI * 2);
       g.fill();
+
       g.fillStyle = "#ffffff";
-      g.font = `800 27px ${UI}`;
-      g.textAlign = "center";
-      g.textBaseline = "middle";
+      g.font = `800 25px ${UI}`;
       g.direction = "ltr";
-      g.fillText(profile.initials, ax + av / 2, y + av / 2 + 1);
+      g.fillText(profile.initials, cx, y + av / 2 + 1);
 
       g.direction = "rtl";
       g.textBaseline = "alphabetic";
-      g.textAlign = "center";
-      y += av + 18;
-      g.fillStyle = "#15151a";
-      g.font = `800 37px ${UI}`;
+      y += av + 24;
+
+      g.fillStyle = "#14141a";
+      g.font = `800 38px ${UI}`;
       g.fillText(profile.name, cx, y);
-      y += 29;
-      g.fillStyle = "#6b6b74";
-      g.font = `500 20px ${UI}`;
+
+      y += 32;
+      g.fillStyle = "#5f5f6a";
+      g.font = `500 21px ${UI}`;
       g.fillText(profile.role, cx, y);
+
       y += 27;
-      g.fillStyle = "#9a9aa3";
+      g.fillStyle = "#a0a0a9";
       g.font = `400 18px ${UI}`;
       g.fillText(`${profile.location} · ${profile.locationEn}`, cx, y);
 
-      y += 29;
-      hairline(x, x + w, y);
-      y += 28;
       g.restore();
     }
 
@@ -734,139 +958,79 @@ export function createDesktopRenderer() {
       g.save();
       g.globalAlpha = clamp01(st.about.open * s.a);
       g.translate(0, s.dy);
+      rule(38);
       g.direction = "rtl";
       g.textAlign = "right";
       g.fillStyle = "#3d3d45";
       g.font = `400 21px ${UI}`;
       for (const l of wrap(g, profile.summary, w).slice(0, 3)) {
         g.fillText(l, x + w, y);
-        y += 31;
+        y += 32;
       }
-      y += 24;
-      hairline(x, x + w, y);
-      y += 26;
       g.restore();
     }
 
-    /* ۳) آمار — فقط یک ردیف ساده و بدون کارت */
+    /* ۳) آمار — یک ردیف ساده، بدون کارت */
     {
       const s = rev(2);
       g.save();
       g.globalAlpha = clamp01(st.about.open * s.a);
       g.translate(0, s.dy);
-      g.direction = "rtl";
-      g.textAlign = "center";
-
-      const items = [
-        { v: "۶", l: "پروژهٔ وب" },
-        { v: "۱", l: "پروژهٔ هوش مصنوعی" },
-        { v: "۱۲", l: "مخزن عمومی" },
-      ];
-      const gap = 40;
-      const cw = (w - gap * (items.length - 1)) / items.length;
-      items.forEach((it, i) => {
-        // چیدمان راست‌به‌چپ
-        const bx = x + w - cw - i * (cw + gap);
-        g.fillStyle = "#15151a";
-        g.font = `700 34px ${UI}`;
+      rule(40);
+      const gap = 32;
+      const cw = (w - gap * (ABOUT_STATS.length - 1)) / ABOUT_STATS.length;
+      ABOUT_STATS.forEach((it, i) => {
+        const bx = x + w - cw - i * (cw + gap); // چیدمان راست‌به‌چپ
+        g.direction = "rtl";
         g.textAlign = "center";
-        g.fillText(it.v, bx + cw / 2, y + 30);
+        g.fillStyle = "#14141a";
+        g.font = `700 32px ${UI}`;
+        g.fillText(it.v, bx + cw / 2, y + 24);
         g.fillStyle = "#8a8a93";
         g.font = `400 18px ${UI}`;
-        g.fillText(it.l, bx + cw / 2, y + 57);
+        g.fillText(it.l, bx + cw / 2, y + 50);
       });
-
-      y += 74;
-      hairline(x, x + w, y);
-      y += 26;
+      y += 62;
       g.restore();
     }
 
-    /* ۴) مهارت‌ها — گروه‌ها با عنوان و چیپ‌های کم‌رنگ */
+    /* ۴) مهارت‌ها — عنوان راست، توضیح چپ، فهرست زیر آن */
     {
       const s = rev(3);
       g.save();
       g.globalAlpha = clamp01(st.about.open * s.a);
       g.translate(0, s.dy);
-      g.direction = "rtl";
-      g.textAlign = "right";
+      rule(40);
 
       for (const group of skillGroups) {
-        g.fillStyle = "#15151a";
-        g.font = `700 21px ${UI}`;
-        g.fillText(group.title, x + w, y + 18);
-        g.fillStyle = "#a2a2ab";
-        g.font = `400 17px ${UI}`;
+        g.textBaseline = "alphabetic";
+        g.direction = "rtl";
+        g.textAlign = "right";
+        g.fillStyle = "#14141a";
+        g.font = `700 20px ${UI}`;
+        g.fillText(group.title, x + w, y);
+
         g.direction = "ltr";
         g.textAlign = "left";
-        g.fillText(group.caption, x, y + 18);
-        g.direction = "rtl";
-
-        // چیپ‌ها زیر عنوان، راست‌به‌چپ
-        y += 28;
-        const chips = group.skills.slice(0, 4);
-        let cx2 = x + w;
-        for (const sk of chips) {
-          g.font = `500 17px ${UI}`;
-          const tw = g.measureText(sk.name).width + 28;
-          if (cx2 - tw < x) {
-            cx2 = x + w;
-            y += 32;
-          }
-          g.fillStyle = "#f2f3f7";
-          g.beginPath();
-          g.roundRect(cx2 - tw, y, tw, 30, 15);
-          g.fill();
-          g.fillStyle = "#3d3d45";
-          g.textAlign = "center";
-          g.direction = "ltr";
-          g.fillText(sk.name, cx2 - tw / 2, y + 20);
-          g.direction = "rtl";
-          cx2 -= tw + 10;
-        }
-        y += 30;
-      }
-      hairline(x, x + w, y - 12);
-      g.restore();
-    }
-
-    /* ۵) سابقه و تحصیلات — فهرست ساده با نقطهٔ تأکید */
-    {
-      const s = rev(4);
-      g.save();
-      g.globalAlpha = clamp01(st.about.open * s.a);
-      g.translate(0, s.dy);
-      g.direction = "rtl";
-      g.textAlign = "right";
-
-      const entries = [
-        ...experience.map((e) => ({
-          t: e.role,
-          m: `${e.company} · ${e.period}`,
-          d: e.text,
-        })),
-        ...education.map((e) => ({
-          t: e.degree,
-          m: `${e.school} · ${e.period}`,
-          d: e.text,
-        })),
-      ];
-
-      for (const en of entries) {
-        g.fillStyle = W.accent;
-        g.beginPath();
-        g.arc(x + w - 6, y + 12, 4.5, 0, Math.PI * 2);
-        g.fill();
-        g.fillStyle = "#15151a";
-        g.font = `600 21px ${UI}`;
-        g.fillText(en.t, x + w - 24, y + 18);
-        g.fillStyle = "#a2a2ab";
+        g.fillStyle = "#b0b0b8";
         g.font = `400 17px ${UI}`;
-        g.fillText(en.m, x + w - 24, y + 39);
+        g.fillText(group.caption, x, y);
+
+        // نام مهارت‌ها به‌صورت یک ردیف متنی ساده — بدون چیپ و بدون شلوغی
+        y += 30;
+        g.direction = "rtl";
+        g.textAlign = "right";
         g.fillStyle = "#55555e";
         g.font = `400 18px ${UI}`;
-        g.fillText(en.d, x + w - 24, y + 58);
-        y += 66;
+        const list = group.skills
+          .slice(0, 6)
+          .map((sk) => sk.name)
+          .join("  ·  ");
+        for (const l of wrap(g, list, w)) {
+          g.fillText(l, x + w, y);
+          y += 27;
+        }
+        y += 22;
       }
       g.restore();
     }
@@ -936,10 +1100,14 @@ export function createDesktopRenderer() {
 
   function drawProjectCard(i, bx, w, h) {
     const p = projects[i];
-    const x = bx + 14;
-    const y = 14;
-    const cw = w - 28;
-    const ch = h - 28;
+    const { stageY } = projectsGeometry();
+    const { pad, urlPad, tabH, urlBarH: urlH, headH } = CARD;
+    // ‌bx و ‌stageY هر دو مطلق‌اند؛ کارت باید داخل پنجرهٔ پروژه بنشیند،
+    // نه اینکه از بالای نوار عنوان بیرون بزند.
+    const x = bx + pad;
+    const y = stageY + pad;
+    const cw = w - pad * 2;
+    const ch = h - pad * 2;
 
     // قاب مرورگر
     g.save();
@@ -950,10 +1118,6 @@ export function createDesktopRenderer() {
     rr(g, x, y, cw, ch, 10);
     g.fill();
     g.restore();
-
-    const tabH = 42;
-    const urlH = 44;
-    const headH = tabH + urlH;
 
     g.fillStyle = "#eef0f4";
     rr(g, x, y, cw, headH, 10);
@@ -976,9 +1140,9 @@ export function createDesktopRenderer() {
     g.fillText(p.slug, x + 44, y + 23);
 
     // نوار آدرس
-    const ux = x + 14;
+    const ux = x + urlPad;
     const uy = y + tabH + 5;
-    const uw = cw - 28;
+    const uw = cw - urlPad * 2;
     g.fillStyle = "#ffffff";
     g.strokeStyle = "rgba(0,0,0,0.10)";
     g.lineWidth = 1;
@@ -1146,12 +1310,17 @@ export function createDesktopRenderer() {
   function draw(state) {
     const st = state;
     const typed = Math.round(st.vscode.typed * totalChars);
+    // ساعت نوار وظیفه هر دقیقه و وضعیت سیستم هر وقت عوض می‌شود؛ پس باید بخشی از
+    // کلید باشند وگرنه بوم تا تغییر چیز دیگری دوباره کشیده نمی‌شود.
+    const clock = st.desktop > 0.01 ? readClock() : null;
+    const sys = st.desktop > 0.01 ? systemKey() : "";
     const key =
       `${typed}|${st.power.toFixed(3)}|${st.desktop.toFixed(3)}` +
       `|${st.vscode.open.toFixed(3)}|${st.vscode.boot.toFixed(3)}|${st.vscode.shut.toFixed(3)}` +
       `|${st.menu.open.toFixed(3)}|${st.menu.hover.toFixed(3)}` +
       `|${st.about.open.toFixed(3)}|${st.about.reveal.toFixed(3)}|${st.about.shut.toFixed(3)}` +
-      `|${st.projects.open.toFixed(3)}|${st.projects.pos.toFixed(3)}|${st.fade.toFixed(3)}`;
+      `|${st.projects.open.toFixed(3)}|${st.projects.pos.toFixed(3)}|${st.fade.toFixed(3)}` +
+      `|${clock ? `${clock.time} ${clock.date}` : ""}|${sys}`;
     if (key === lastKey) return false;
     lastKey = key;
 

@@ -6,7 +6,11 @@ import { Icon } from "./Icon";
 import MagneticLink from "./MagneticLink";
 import CodeWindow from "./CodeWindow";
 import { createLaptopScene } from "./three/laptop";
-import { projectsGeometry, T, clamp } from "./three/timeline";
+import { loadDana, watchSystem } from "./three/desktop";
+import { projectsGeometry, T, clamp, liveFrameSize } from "./three/timeline";
+
+/** اندازهٔ iframe زنده در فضای ۱۶۰۰×۱۰۰۰ صفحه — ثابت است. */
+const { w: LIVE_W, h: LIVE_H } = liveFrameSize();
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -111,7 +115,10 @@ export default function LaptopExperience() {
   const liveIndexRef = useRef(-1);
   // سرور و کاربران بدون WebGL همان نسخه‌ی استاتیک را می‌بینند.
   const [mode, setMode] = useState("static");
+  // پروژه‌ای که سایت زنده‌اش باز است (نه فقط نشانی — تصویر و عنوانش هم لازم است)
   const [live, setLive] = useState(null);
+  // "loading" | "ready" | "slow" — وضعیت بارگذاری سایت زنده
+  const [liveState, setLiveState] = useState("loading");
 
   /** شمارهٔ پروژهٔ فعلی در اسلایدر، از روی پیشرفت اسکرول. */
   const carouselIndex = useCallback((p) => {
@@ -120,11 +127,15 @@ export default function LaptopExperience() {
     return Math.round(t * (projects.length - 1));
   }, []);
 
-  const setLiveUrl = useCallback((url) => {
-    liveRef.current = url;
-    liveIndexRef.current = carouselIndex(progressRef.current);
-    setLive(url);
-  }, [carouselIndex]);
+  const setLiveProject = useCallback(
+    (project) => {
+      liveRef.current = project.url;
+      liveIndexRef.current = carouselIndex(progressRef.current);
+      setLiveState("loading");
+      setLive(project);
+    },
+    [carouselIndex],
+  );
 
   const closeLive = useCallback(() => {
     liveRef.current = null;
@@ -133,6 +144,124 @@ export default function LaptopExperience() {
   }, []);
 
   const progressRef = useRef(0);
+
+  /* ---------- سقف زمان بارگذاری سایت زنده ---------- */
+
+  // بعضی سایت‌ها سرد بالا می‌آیند. اگر بعد از این مدت رویداد load نرسید،
+  // به‌جای یک کادر خالیِ بی‌پایان، راه باز کردن سایت در تب جدید را نشان می‌دهیم.
+  useEffect(() => {
+    if (!live) return;
+    if (liveState !== "loading") return;
+    const id = setTimeout(() => {
+      setLiveState((s) => (s === "loading" ? "slow" : s));
+    }, 9000);
+    return () => clearTimeout(id);
+  }, [live, liveState]);
+
+  /* ---------- پایش وضعیت واقعی سیستم کاربر ---------- */
+
+  // آیکون‌های نوار وظیفه (باتری، شبکه، صدا) از همین وضعیت می‌خوانند، پس
+  // پایش باید حتی اگر صحنهٔ سه‌بعدی اجرا نشد هم روشن باشد.
+  useEffect(() => watchSystem(), []);
+
+  /* ---------- اتصال زودهنگام به میزبان سایت‌ها ---------- */
+
+  // پیش از رسیدن کاربر به پنجرهٔ پروژه‌ها، اتصال به میزبان‌ها باز می‌شود تا
+  // DNS و TLS موقع کلیک آماده باشند. بدون این، خودِ «باز شدن» سایت کند حس
+  // می‌شود چون هر بار از صفر وصل می‌شود.
+  useEffect(() => {
+    const links = [];
+    let done = false;
+
+    const connect = () => {
+      if (done) return;
+      done = true;
+      const origins = new Set();
+      for (const p of projects) {
+        if (p.url) origins.add(new URL(p.url).origin);
+      }
+      for (const origin of origins) {
+        const link = document.createElement("link");
+        link.rel = "preconnect";
+        link.href = origin;
+        document.head.appendChild(link);
+        links.push(link);
+      }
+    };
+
+    const section = sectionRef.current;
+    if (!section) return;
+
+    // به‌محض اینکه کاربر شروع به اسکرول کرد، اتصال باز می‌شود. تا آن لحظه
+    // چند دقیقه اسکرول تا پنجرهٔ پروژه‌ها فاصله است، پس وقتی کاربر کلیک می‌کند
+    // DNS و TLS از قبل آماده‌اند.
+    const check = () => {
+      if (window.scrollY > 120) connect();
+    };
+
+    window.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    check();
+
+    return () => {
+      window.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+      links.forEach((l) => l.remove());
+    };
+  }, []);
+
+  /* ---------- قفل اسکرول در حالت نمای زنده ---------- */
+
+  useEffect(() => {
+    if (!live) return;
+
+    const root = document.documentElement;
+    const { body } = document;
+    const anchor = window.scrollY;
+    // با حذف اسکرول‌بار، عرض صفحه یک پیکسل جابه‌جا می‌شود؛ همان عرض را
+    // به‌صورت فاصله برمی‌گردانیم تا محتوا نپرد.
+    const gutter = Math.max(0, window.innerWidth - root.clientWidth);
+    const prevPad = body.style.paddingInlineEnd;
+
+    body.style.overflow = "hidden";
+    root.style.overflow = "hidden";
+    if (gutter) body.style.paddingInlineEnd = `${gutter}px`;
+    root.dataset.liveLocked = "true";
+
+    // بعضی مرورگرها با قفل کردن، ناگهان به بالای صفحه می‌پرند.
+    if (Math.abs(window.scrollY - anchor) > 1) {
+      window.scrollTo({ top: anchor, behavior: "instant" });
+    }
+
+    const onScroll = () => {
+      // «overflow: hidden» چرخ و صفحه‌کلید را می‌بندد، ولی اسکرول برنامه‌ای و
+      // اسکرول خودکارِ عنصرِ فوکوس‌شده را نه. هر دو، لپ‌تاپ را از زیر iframe
+      // بیرون می‌کشند؛ پس همین‌جا برمی‌گردانیمش.
+      if (Math.abs(window.scrollY - anchor) > 1) {
+        window.scrollTo({ top: anchor, behavior: "instant" });
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    const onKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      closeLive();
+    };
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("keydown", onKeyDown);
+      delete root.dataset.liveLocked;
+      body.style.overflow = "";
+      root.style.overflow = "";
+      body.style.paddingInlineEnd = prevPad;
+      if (Math.abs(window.scrollY - anchor) > 1) {
+        window.scrollTo({ top: anchor, behavior: "instant" });
+      }
+    };
+  }, [live, closeLive]);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -143,92 +272,111 @@ export default function LaptopExperience() {
     const section = sectionRef.current;
     if (!canvas || !section) return;
 
-    let scene;
-    try {
-      scene = createLaptopScene(canvas);
-    } catch {
-      return; // WebGL در دسترس نیست — همان کارت استاتیک می‌ماند.
-    }
+    // فونت دانا باید پیش از نخستین رسمِ بوم آماده باشد، وگرنه متن فارسیِ
+    // صفحهٔ لپ‌تاپ با فونت جایگزین کشیده می‌شود و دیگر درست نمی‌شود.
+    let stopped = false;
+    let teardown = null;
 
-    setMode("3d");
+    loadDana().then(() => {
+      if (stopped) return;
 
-    /* ---------- پیش‌نمایش زندهٔ پروژه ---------- */
-
-    const btn = projectsGeometry().viewBtn;
-
-    scene.onScreenTap((pt, st) => {
-      if (liveRef.current) return; // نمای زنده باز است
-      const hit =
-        pt.x >= btn.x &&
-        pt.x <= btn.x + btn.w &&
-        pt.y >= btn.y &&
-        pt.y <= btn.y + btn.h;
-      if (!hit) return;
-      const p = projects[clamp(Math.round(st.projects.pos), 0, projects.length - 1)];
-      if (p && p.url) setLiveUrl(p.url);
-    });
-
-    scene.onLiveTransform((matrix) => {
-      if (frameRef.current) frameRef.current.style.transform = matrix;
-    });
-
-    const applyProgress = () => {
-      const total = section.offsetHeight - window.innerHeight;
-      const raw = total > 0 ? -section.getBoundingClientRect().top / total : 0;
-      const p = clamp01(raw);
-
-      scene.setProgress(p);
-      section.style.setProperty("--p", p.toFixed(4));
-      progressRef.current = p;
-
-      // با اسکرول به پروژهٔ بعدی، نمای زنده بسته می‌شود
-      if (liveRef.current && carouselIndex(p) !== liveIndexRef.current) {
-        closeLive();
+      let scene;
+      try {
+        scene = createLaptopScene(canvas);
+      } catch {
+        return; // WebGL در دسترس نیست — همان کارت استاتیک می‌ماند.
       }
 
-      let phase = 0;
-      for (let i = 0; i < PHASES.length; i++) {
-        if (p >= PHASES[i].at) phase = i;
+      if (stopped) {
+        scene.dispose();
+        return;
       }
-      if (section.dataset.phase !== String(phase)) {
-        section.dataset.phase = String(phase);
-      }
-    };
 
-    const onPointerMove = (e) => {
-      scene.setPointer(
-        (e.clientX / window.innerWidth) * 2 - 1,
-        (e.clientY / window.innerHeight) * 2 - 1,
+      setMode("3d");
+
+      /* ---------- پیش‌نمایش زندهٔ پروژه ---------- */
+
+      const btn = projectsGeometry().viewBtn;
+
+      scene.onScreenTap((pt, st) => {
+        if (liveRef.current) return; // نمای زنده باز است
+        const hit =
+          pt.x >= btn.x &&
+          pt.x <= btn.x + btn.w &&
+          pt.y >= btn.y &&
+          pt.y <= btn.y + btn.h;
+        if (!hit) return;
+        const p = projects[clamp(Math.round(st.projects.pos), 0, projects.length - 1)];
+        if (p && p.url) setLiveProject(p);
+      });
+
+      scene.onLiveTransform((matrix) => {
+        if (frameRef.current) frameRef.current.style.transform = matrix;
+      });
+
+      const applyProgress = () => {
+        const total = section.offsetHeight - window.innerHeight;
+        const raw = total > 0 ? -section.getBoundingClientRect().top / total : 0;
+        const p = clamp01(raw);
+
+        scene.setProgress(p);
+        section.style.setProperty("--p", p.toFixed(4));
+        progressRef.current = p;
+
+        // با اسکرول به پروژهٔ بعدی، نمای زنده بسته می‌شود
+        if (liveRef.current && carouselIndex(p) !== liveIndexRef.current) {
+          closeLive();
+        }
+
+        let phase = 0;
+        for (let i = 0; i < PHASES.length; i++) {
+          if (p >= PHASES[i].at) phase = i;
+        }
+        if (section.dataset.phase !== String(phase)) {
+          section.dataset.phase = String(phase);
+        }
+      };
+
+      const onPointerMove = (e) => {
+        scene.setPointer(
+          (e.clientX / window.innerWidth) * 2 - 1,
+          (e.clientY / window.innerHeight) * 2 - 1,
+        );
+      };
+
+      const onResize = () => {
+        // ارتفاع واقعی نوار بالای صفحه تا بوم دقیقاً یک‌نمایشگر را بپوشاند.
+        const navH = document.querySelector(".nav")?.offsetHeight ?? 0;
+        if (navH) section.style.setProperty("--nav-h", `${navH}px`);
+        scene.resize();
+        applyProgress();
+      };
+
+      // وقتی این بخش از دید خارج است، رندر متوقف شود.
+      const io = new IntersectionObserver(
+        ([entry]) => scene.setActive(entry.isIntersecting),
+        { rootMargin: "5% 0px" },
       );
-    };
+      io.observe(section);
 
-    const onResize = () => {
-      // ارتفاع واقعی نوار بالای صفحه تا بوم دقیقاً یک‌نمایشگر را بپوشاند.
-      const navH = document.querySelector(".nav")?.offsetHeight ?? 0;
-      if (navH) section.style.setProperty("--nav-h", `${navH}px`);
-      scene.resize();
-      applyProgress();
-    };
+      window.addEventListener("scroll", applyProgress, { passive: true });
+      window.addEventListener("resize", onResize);
+      window.addEventListener("pointermove", onPointerMove, { passive: true });
+      onResize();
 
-    // وقتی این بخش از دید خارج است، رندر متوقف شود.
-    const io = new IntersectionObserver(
-      ([entry]) => scene.setActive(entry.isIntersecting),
-      { rootMargin: "5% 0px" },
-    );
-    io.observe(section);
-
-    window.addEventListener("scroll", applyProgress, { passive: true });
-    window.addEventListener("resize", onResize);
-    window.addEventListener("pointermove", onPointerMove, { passive: true });
-    onResize();
+      teardown = () => {
+        io.disconnect();
+        window.removeEventListener("scroll", applyProgress);
+        window.removeEventListener("resize", onResize);
+        window.removeEventListener("pointermove", onPointerMove);
+        scene.onLiveTransform(null);
+        scene.dispose();
+      };
+    });
 
     return () => {
-      io.disconnect();
-      window.removeEventListener("scroll", applyProgress);
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("pointermove", onPointerMove);
-      scene.onLiveTransform(null);
-      scene.dispose();
+      stopped = true;
+      teardown?.();
     };
   }, []);
 
@@ -261,30 +409,80 @@ export default function LaptopExperience() {
       {/*
         پیش‌نمایش زندهٔ سایت پروژه.
         این عنصر با ماتریس CSS که صحنهٔ سه‌بعدی هر فریم می‌دهد، دقیقاً روی
-        صفحهٔ لپ‌تاپ می‌نشیند؛ پس iframe واقعی و تعاملی است، نه تصویر.
+        ناحیهٔ محتوای کارت مرورگرِ همان پروژه می‌نشیند — نه روی کل صفحه؛ پس
+        سایت داخل پنجرهٔ خودش دیده می‌شود و بقیهٔ لپ‌تاپ دست‌نخورده می‌ماند.
+        هم‌زمان اسکرول بقیهٔ صفحه قفل می‌شود تا تمرکز کاربر داخل لپ‌تاپ بماند.
       */}
       {live && (
-        <div className="intro3d-live" aria-hidden="true">
-          <div className="intro3d-live-frame" ref={frameRef}>
+        <div className="intro3d-live">
+          <div className="intro3d-live-scrim" aria-hidden="true" />
+          <div
+            className="intro3d-live-frame"
+            ref={frameRef}
+            style={{ width: LIVE_W, height: LIVE_H }}
+          >
+            {/*
+              تا وقتی سایت بالا نیامده، همان تصویر واقعی پروژه زیرش می‌ماند.
+              بدون این، یک مستطیل خالی دیده می‌شد و به نظر می‌رسید سایت باز
+              نشده است.
+            */}
+            {live.image && (
+              /* تصویر داخل صحنهٔ سه‌بعدی است، نه محتوای صفحه؛ next/image اینجا
+                 کمکی نمی‌کند. */
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="intro3d-live-poster" src={live.image} alt="" />
+            )}
+            {liveState !== "ready" && (
+              <span className="intro3d-live-busy">
+                {liveState === "loading" ? (
+                  <>
+                    <span className="spinner" aria-hidden="true" />
+                    در حال باز شدن سایت…
+                  </>
+                ) : (
+                  <>
+                    <Icon name="external" size={14} />
+                    سایت دیر بالا آمد —{" "}
+                    <a
+                      className="intro3d-live-fallback-link"
+                      href={live.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      باز کردن در تب جدید
+                    </a>
+                  </>
+                )}
+              </span>
+            )}
             <iframe
-              src={live}
-              title="پیش‌نمایش زندهٔ پروژه"
-              loading="lazy"
+              src={live.url}
+              title={`پیش‌نمایش زندهٔ سایت ${live.title}`}
+              onLoad={() => setLiveState("ready")}
               sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
               referrerPolicy="no-referrer"
+              fetchPriority="high"
             />
           </div>
         </div>
       )}
 
       {live && (
-        <button
-          type="button"
-          className="intro3d-live-close"
-          onClick={closeLive}
-        >
-          بستن پیش‌نمایش
-        </button>
+        <div className="intro3d-live-bar">
+          <p className="intro3d-live-note">
+            <span className="intro3d-live-dot" aria-hidden="true" />
+            نمای زنده — اسکرول بیرون از لپ‌تاپ قفل است
+          </p>
+          <button
+            type="button"
+            className="intro3d-live-close"
+            onClick={closeLive}
+          >
+            <Icon name="arrow-left" size={16} />
+            خروج از حالت لایو
+            <kbd className="intro3d-live-key">Esc</kbd>
+          </button>
+        </div>
       )}
     </section>
   );
