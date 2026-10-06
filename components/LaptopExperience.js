@@ -97,6 +97,12 @@ export default function LaptopExperience() {
   const [live, setLive] = useState(null);
   // "loading" | "ready" | "slow" — وضعیت بارگذاری سایت زنده
   const [liveState, setLiveState] = useState("loading");
+  // وضعیت لود اولیه صفحه
+  const [pageLoaded, setPageLoaded] = useState(false);
+  // پیشرفت اسکرول برای کنترل pointer-events بوم
+  const [scrollProgress, setScrollProgress] = useState(0);
+  // آیا بوم باید رویدادهای موس بگیرد (بعد از threshold اسکرول)
+  const [canvasInteractive, setCanvasInteractive] = useState(false);
 
   /** شمارهٔ پروژهٔ فعلی در اسلایدر، از روی پیشرفت اسکرول. */
   const carouselIndex = useCallback((p) => {
@@ -229,6 +235,15 @@ export default function LaptopExperience() {
     };
   }, []);
 
+  /* ---------- لودر اولیه صفحه ---------- */
+  useEffect(() => {
+    // کمی صبر می‌کنیم تا همه اسْت‌ها و فونت‌ها لود شوند
+    const timer = setTimeout(() => {
+      setPageLoaded(true);
+    }, 600); // 600ms برای انیمیشن لودر
+    return () => clearTimeout(timer);
+  }, []);
+
   /* ---------- قفل اسکرول در حالت نمای زنده ---------- */
 
 useEffect(() => {
@@ -348,6 +363,11 @@ useEffect(() => {
         scene.setProgress(p);
         section.style.setProperty("--p", p.toFixed(4));
         progressRef.current = p;
+        setScrollProgress(p);
+
+        // بوم پس از ۵٪ اسکرول تعاملی شود (لپ‌تاپ باز می‌شود)
+        // در ابتدای صفحه (p=0) محتوا قابل کلیک باشد، بوم رویداد نگیرد
+        setCanvasInteractive(p > 0.05);
 
         // با اسکرول به پروژهٔ بعدی، نمای زنده بسته می‌شود
         if (liveRef.current && carouselIndex(p) !== liveIndexRef.current) {
@@ -407,9 +427,86 @@ useEffect(() => {
   }, []);
 
   return (
-    <section className="intro3d" id="home" ref={sectionRef} data-mode={mode}>
+    <section className="intro3d" id="home" ref={sectionRef} data-mode={mode} data-page-loaded={pageLoaded} data-canvas-interactive={canvasInteractive}>
+      {/* لودر اولیه صفحه - تم برنامه‌نویسی سه‌بعدی */}
+      {!pageLoaded && (
+        <div className="intro3d-page-loader" aria-hidden="true">
+          <div className="intro3d-loader-scene">
+            {/* کد تایپ می‌شود */}
+            <div className="intro3d-loader-terminal">
+              <div className="intro3d-loader-terminal-bar">
+                <span className="intro3d-loader-terminal-dot" style={{background: '#ff5f57'}} />
+                <span className="intro3d-loader-terminal-dot" style={{background: '#febc2e'}} />
+                <span className="intro3d-loader-terminal-dot" style={{background: '#28c840'}} />
+              </div>
+              <div className="intro3d-loader-terminal-body">
+                <div className="intro3d-loader-code-line">
+                  <span className="intro3d-loader-prompt">const</span>
+                  <span className="intro3d-loader-keyword"> developer</span>
+                  <span className="intro3d-loader-operator"> =</span>
+                  <span className="intro3d-loader-string"> "Mostafa"</span>
+                  <span className="intro3d-loader-punctuation">;</span>
+                </div>
+                <div className="intro3d-loader-code-line">
+                  <span className="intro3d-loader-prompt">const</span>
+                  <span class="intro3d-loader-keyword"> skills</span>
+                  <span className="intro3d-loader-operator"> =</span>
+                  <span className="intro3d-loader-bracket">[</span>
+                  <span className="intro3d-loader-string">"React"</span>
+                  <span className="intro3d-loader-punctuation">,</span>
+                  <span className="intro3d-loader-string">"Three.js"</span>
+                  <span className="intro3d-loader-punctuation">,</span>
+                  <span className="intro3d-loader-string">"AI/ML"</span>
+                  <span className="intro3d-loader-punctuation">,</span>
+                  <span className="intro3d-loader-string">"TypeScript"</span>
+                  <span className="intro3d-loader-bracket">]</span>
+                  <span className="intro3d-loader-punctuation">;</span>
+                </div>
+                <div className="intro3d-loader-code-line">
+                  <span className="intro3d-loader-prompt">const</span>
+                  <span className="intro3d-loader-keyword"> build</span>
+                  <span className="intro3d-loader-operator"> =</span>
+                  <span className="intro3d-loader-function"> ()</span>
+                  <span className="intro3d-loader-bracket"> =></span>
+                  <span className="intro3d-loader-bracket"> {</span>
+                </div>
+                <div className="intro3d-loader-code-line intro3d-loader-indent">
+                  <span className="intro3d-loader-keyword">return</span>
+                  <span className="intro3d-loader-string"> "Amazing UI"</span>
+                  <span className="intro3d-loader-punctuation">;</span>
+                </div>
+                <div className="intro3d-loader-code-line">
+                  <span className="intro3d-loader-bracket">}</span>
+                  <span className="intro3d-loader-punctuation">;</span>
+                </div>
+                <div className="intro3d-loader-cursor-line">
+                  <span className="intro3d-loader-prompt">build</span>
+                  <span className="intro3d-loader-function">()</span>
+                  <span className="intro3d-loader-cursor" aria-hidden="true"></span>
+                </div>
+              </div>
+            </div>
+            {/* المان‌های سه‌بعدی شناور: آکولادها، براکت‌ها، سمی‌کالون‌ها */}
+            <div className="intro3d-loader-floating-elements" aria-hidden="true">
+              <span className="intro3d-float-el" style="--i:0">&#123;</span>
+              <span className="intro3d-float-el" style="--i:1">&#125;</span>
+              <span className="intro3d-float-el" style="--i:2">[</span>
+              <span className="intro3d-float-el" style="--i:3">]</span>
+              <span className="intro3d-float-el" style="--i:4">=></span>
+              <span className="intro3d-float-el" style="--i:5">();</span>
+              <span className="intro3d-float-el" style="--i:6">&#60;/&#62;</span>
+              <span className="intro3d-float-el" style="--i:7">const</span>
+              <span className="intro3d-float-el" style="--i:8">let</span>
+              <span className="intro3d-float-el" style="--i:9">async</span>
+              <span className="intro3d-float-el" style="--i:10">await</span>
+              <span className="intro3d-float-el" style="--i:11">&#96;&#96;&#96;</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="intro3d-sticky">
-        <div className="intro3d-canvas-wrap">
+        <div className={`intro3d-canvas-wrap${mode === "static" && !pageLoaded ? " is-loading" : ""}`} style={{ pointerEvents: canvasInteractive ? 'auto' : 'none' }}>
           <canvas ref={canvasRef} className="intro3d-canvas" aria-hidden="true" />
         </div>
 
@@ -457,17 +554,16 @@ useEffect(() => {
               // eslint-disable-next-line @next/next/no-img-element
               <img className="intro3d-live-poster" src={live.image} alt="" />
             )}
+
+            {/* لودر تمام‌صفحه در حین بارگذاری iframe */}
             {liveState !== "ready" && (
-              <span className="intro3d-live-busy">
-                {liveState === "loading" ? (
-                  <>
-                    <span className="spinner" aria-hidden="true" />
-                    در حال باز شدن سایت…
-                  </>
-                ) : (
-                  <>
-                    <Icon name="external" size={14} />
-                    سایت دیر بالا آمد —{" "}
+              <div className="intro3d-live-loader" role="status" aria-live="polite">
+                <div className="intro3d-live-loader-content">
+                  <span className="intro3d-live-loader-spinner" aria-hidden="true" />
+                  <span className="intro3d-live-loader-text">
+                    {liveState === "loading" ? "در حال بارگذاری سایت…" : "سایت دیر بالا آمد"}
+                  </span>
+                  {liveState === "slow" && (
                     <a
                       className="intro3d-live-fallback-link"
                       href={live.url}
@@ -476,10 +572,11 @@ useEffect(() => {
                     >
                       باز کردن در تب جدید
                     </a>
-                  </>
-                )}
-              </span>
+                  )}
+                </div>
+              </div>
             )}
+
             <iframe
               src={live.url}
               title={`پیش‌نمایش زندهٔ سایت ${live.title}`}
@@ -502,9 +599,10 @@ useEffect(() => {
             type="button"
             className="intro3d-live-close"
             onClick={closeLive}
+            aria-label="خروج از حالت لایو"
           >
             <Icon name="arrow-left" size={16} />
-            خروج از حالت لایو
+            <span>خروج از حالت لایو</span>
             <kbd className="intro3d-live-key">Esc</kbd>
           </button>
         </div>
