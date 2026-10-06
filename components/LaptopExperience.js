@@ -467,8 +467,8 @@ useEffect(() => {
                   <span className="intro3d-loader-keyword"> build</span>
                   <span className="intro3d-loader-operator"> =</span>
                   <span className="intro3d-loader-function"> ()</span>
-                  <span className="intro3d-loader-bracket"> =></span>
-                  <span className="intro3d-loader-bracket"> {</span>
+                  <span className="intro3d-loader-bracket"> &#61;&#62;</span>
+                  <span className="intro3d-loader-bracket"> &#123;</span>
                 </div>
                 <div className="intro3d-loader-code-line intro3d-loader-indent">
                   <span className="intro3d-loader-keyword">return</span>
@@ -476,7 +476,7 @@ useEffect(() => {
                   <span className="intro3d-loader-punctuation">;</span>
                 </div>
                 <div className="intro3d-loader-code-line">
-                  <span className="intro3d-loader-bracket">}</span>
+                  <span className="intro3d-loader-bracket">&#125;</span>
                   <span className="intro3d-loader-punctuation">;</span>
                 </div>
                 <div className="intro3d-loader-cursor-line">
@@ -488,18 +488,18 @@ useEffect(() => {
             </div>
             {/* المان‌های سه‌بعدی شناور: آکولادها، براکت‌ها، سمی‌کالون‌ها */}
             <div className="intro3d-loader-floating-elements" aria-hidden="true">
-              <span className="intro3d-float-el" style="--i:0">&#123;</span>
-              <span className="intro3d-float-el" style="--i:1">&#125;</span>
-              <span className="intro3d-float-el" style="--i:2">[</span>
-              <span className="intro3d-float-el" style="--i:3">]</span>
-              <span className="intro3d-float-el" style="--i:4">=></span>
-              <span className="intro3d-float-el" style="--i:5">();</span>
-              <span className="intro3d-float-el" style="--i:6">&#60;/&#62;</span>
-              <span className="intro3d-float-el" style="--i:7">const</span>
-              <span className="intro3d-float-el" style="--i:8">let</span>
-              <span className="intro3d-float-el" style="--i:9">async</span>
-              <span className="intro3d-float-el" style="--i:10">await</span>
-              <span className="intro3d-float-el" style="--i:11">&#96;&#96;&#96;</span>
+              <span className="intro3d-float-el" style={{'--i':0}}>&#123;</span>
+              <span className="intro3d-float-el" style={{'--i':1}}>&#125;</span>
+              <span className="intro3d-float-el" style={{'--i':2}}>&#91;</span>
+              <span className="intro3d-float-el" style={{'--i':3}}>&#93;</span>
+              <span className="intro3d-float-el" style={{'--i':4}}>&#61;&#62;</span>
+              <span className="intro3d-float-el" style={{'--i':5}}>()&#59;</span>
+              <span className="intro3d-float-el" style={{'--i':6}}>&#60;/&#62;</span>
+              <span className="intro3d-float-el" style={{'--i':7}}>const</span>
+              <span className="intro3d-float-el" style={{'--i':8}}>let</span>
+              <span className="intro3d-float-el" style={{'--i':9}}>async</span>
+              <span className="intro3d-float-el" style={{'--i':10}}>await</span>
+              <span className="intro3d-float-el" style={{'--i':11}}>&#96;&#96;&#96;</span>
             </div>
           </div>
         </div>

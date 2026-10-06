@@ -2787,6 +2787,9 @@ html[data-motion="off"] .intro3d-canvas-wrap {
 .intro3d[data-mode="3d"][data-phase="0"] .intro3d-copy {
   pointer-events: auto;
 }
+.intro3d[data-mode="3d"][data-canvas-interactive="false"] .intro3d-copy {
+  pointer-events: all !important;
+}
 
 .intro3d h1 {
   font-size: clamp(38px, 7.2vw, 76px);
@@ -3665,8 +3668,18 @@ html[data-motion="off"] .intro3d-canvas-wrap {
   pointer-events: none;
 }
 
-.intro3d[data-mode="3d"] .intro3d-canvas-wrap {
+/* در حالت 3D، canvas در ابتدای صفحه (progress=0) غیرفعال است
+   و پس از ۵٪ اسکرول (canvasInteractive=true) فعال می‌شود */
+.intro3d[data-canvas-interactive="false"] .intro3d-canvas-wrap {
+  pointer-events: none;
+}
+
+.intro3d[data-canvas-interactive="true"] .intro3d-canvas-wrap {
   pointer-events: auto;
+}
+
+.intro3d[data-mode="3d"] .intro3d-canvas-wrap {
+  opacity: 1;
 }
 
 /* =========================================================================
